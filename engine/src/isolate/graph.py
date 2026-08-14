@@ -164,6 +164,10 @@ class DependencyGraph:
             found.add("G1b")
         if self._detect_otv(txns):
             found.add("OTV")
+        if self._detect_p4(txns):
+            found.add("P4")
+        if self._detect_pmp(txns):
+            found.add("PMP")
 
         order = ["G0", "G1a", "G1b", "G1c", "OTV", "PMP", "P4", "G-single", "G2-item", "G2"]
         return [code for code in order if code in found]
@@ -200,6 +204,60 @@ class DependencyGraph:
                 return True
         return False
 
+    def _detect_p4(self, txns: dict[int, Transaction]) -> bool:
+        """Lost update: two committed transactions read a row, then both overwrote it.
+
+        Not a cycle. The classic read-modify-write race, where the second write is based on
+        a value the first already replaced, so one update disappears with nothing raised.
+        """
+        for read in self.reads:
+            if read.version is None or read.txn not in self._committed:
+                continue
+            own_write = [
+                w
+                for w in self.writes
+                if w.txn == read.txn and w.key == read.key and w.at_step > read.at_step
+            ]
+            if not own_write:
+                continue
+            for other in self.writes:
+                if (
+                    other.txn != read.txn
+                    and other.key == read.key
+                    and other.txn in self._committed
+                    and other.at_step > read.at_step
+                    and other.at_step < own_write[0].at_step
+                ):
+                    return True
+        return False
+
+    def _detect_pmp(self, txns: dict[int, Transaction]) -> bool:
+        """Predicate many preceders: a scan re-run in the same transaction sees more rows.
+
+        The reader's own predicate returned one set, then another transaction's insert or
+        update brought a row into that range and the reader observed it.
+        """
+        for scan in self.scans:
+            if scan.txn not in self._committed:
+                continue
+            later_matches = [
+                r
+                for r in self.reads
+                if r.txn == scan.txn
+                and not r.item_level
+                and r.at_step > scan.at_step
+                and r.version is not None
+                and r.version.xmin not in (0, scan.txn)
+                and r.version.xmin in self._committed
+            ]
+            for match in later_matches:
+                if match.version is None:
+                    continue
+                # the row only counts as a phantom if it was invisible to the first scan
+                if match.version.created_at_step > scan.at_step:
+                    return True
+        return False
+
     def _detect_otv(self, txns: dict[int, Transaction]) -> bool:
         """Observed Transaction Vanishes, on the unfolded serialization graph.
 
@@ -213,6 +271,24 @@ class DependencyGraph:
                 writer = seen.version.xmin
                 if writer in (0, observer):
                     continue
+                # a torn view within one scan: this key came from the writer, another key
+                # the same writer touched still shows an older version at the same step
+                for sibling in self.reads:
+                    if (
+                        sibling.txn != observer
+                        or sibling.at_step != seen.at_step
+                        or sibling.key == seen.key
+                        or sibling.version is None
+                    ):
+                        continue
+                    same_writer = [
+                        w for w in self.writes if w.txn == writer and w.key == sibling.key
+                    ]
+                    if same_writer and all(
+                        sibling.version.created_at_step < w.created.created_at_step
+                        for w in same_writer
+                    ):
+                        return True
                 # every later read by the same observer, of another key the writer wrote
                 for later in self.reads:
                     if (

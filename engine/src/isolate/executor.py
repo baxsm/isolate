@@ -66,6 +66,8 @@ class Executor:
         self._rw_out: dict[int, set[int]] = {}
         self._rw_in: dict[int, set[int]] = {}
         self._queued: dict[int, list[Operation]] = {}
+        self._shared_locks: dict[str, set[int]] = {}
+        self._gap_locks: dict[str, set[int]] = {}
         # the transaction label from the schedule is used as the xid directly, so a reader
         # comparing an xid in the UI against a schedule sees the same number in both
         self._next_xid = max([*isolation, 0]) + 1
@@ -121,6 +123,28 @@ class Executor:
         for key, owner in list(self._write_lock_owner.items()):
             if owner == xid:
                 del self._write_lock_owner[key]
+        for holders in self._shared_locks.values():
+            holders.discard(xid)
+        for holders in self._gap_locks.values():
+            holders.discard(xid)
+
+    def _shared_holders(self, key: str, writer: int, value: int | None = None) -> set[int]:
+        """Live transactions other than writer read-locking this row or the gap around it."""
+        holders = set(self._shared_locks.get(key, set()))
+        if value is not None:
+            for predicate, owners in self._gap_locks.items():
+                try:
+                    if matches(predicate, key, value):
+                        holders |= owners
+                except PredicateError:
+                    continue
+        return {
+            x
+            for x in holders
+            if x != writer
+            and self.txns.get(x) is not None
+            and self.txns[x].state not in (TxnState.COMMITTED, TxnState.ABORTED)
+        }
 
     # execution ------------------------------------------------------------------
 
@@ -201,7 +225,10 @@ class Executor:
             self.graph.record_empty_read(op.txn, op.key, self._step)
         if LEVELS[txn.isolation].tracks_siread:
             txn.siread_locks.add(op.key)
-            self._ssi_on_read(op.txn, op.key, version)
+            if self.behaviour.reads_take_shared_locks:
+                self._shared_locks.setdefault(op.key, set()).add(op.txn)
+            else:
+                self._ssi_on_read(op.txn, op.key, version)
         self._emit(op, "ok", None, read_value=value)
 
     def _do_predicate_read(self, op: Operation) -> None:
@@ -221,15 +248,30 @@ class Executor:
             self.graph.record_predicate_scan(op.txn, key, op.predicate, self._step)
             if LEVELS[txn.isolation].tracks_siread:
                 txn.siread_locks.add(key)
-                self._ssi_on_read(op.txn, key, version)
+                if self.behaviour.reads_take_shared_locks:
+                    self._shared_locks.setdefault(key, set()).add(op.txn)
+                else:
+                    self._ssi_on_read(op.txn, key, version)
         if LEVELS[txn.isolation].tracks_siread:
             # phantom protection: the predicate itself is locked, not only existing rows
             txn.siread_locks.add(f"predicate:{op.predicate}")
+            if self.behaviour.reads_take_shared_locks:
+                # innodb takes a gap lock over the scanned range, so an insert into it by
+                # another transaction deadlocks rather than appearing as a phantom
+                self._gap_locks.setdefault(op.predicate, set()).add(op.txn)
         self._emit(op, "ok", None)
 
     def _do_write(self, op: Operation) -> None:
         assert op.key is not None
         txn = self.txns[op.txn]
+
+        if self._shared_holders(op.key, op.txn, op.value):
+            # mysql serializable: the row is read-locked by someone else, so this write
+            # waits and the lock manager breaks the wait as a deadlock rather than a
+            # serialization failure
+            self._abort(op.txn)
+            self._emit(op, "aborted", self.behaviour.deadlock_error)
+            return
 
         holder = self._lock_holder(op.key)
         if holder is not None and holder != op.txn:
@@ -310,6 +352,11 @@ class Executor:
             visible_now, _ = visible_value(
                 self.store.chain(key), op.txn, snap, states, txn.isolation
             )
+
+            if self._shared_holders(key, op.txn):
+                self._abort(op.txn)
+                self._emit(op, "aborted", self.behaviour.deadlock_error)
+                return
 
             holder = self._lock_holder(key)
             if holder is not None and holder != op.txn:

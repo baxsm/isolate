@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 
@@ -55,6 +55,9 @@ class ProfileBehaviour:
     look the same, but writes skip the first-updater-wins abort, so P4 is lost in silence."""
     serializable_uses_ssi: bool
     """MySQL prevents G2 by locking and deadlock, error 1213, not by SSI."""
+    reads_take_shared_locks: bool
+    """MySQL serializable promotes every select to a shared lock read, so a later writer
+    deadlocks instead of being detected as a dangerous structure at commit."""
     deadlock_error: str
 
 
@@ -66,6 +69,7 @@ PROFILES: dict[EngineProfile, ProfileBehaviour] = {
         ),
         lost_update_at_repeatable_read=False,
         serializable_uses_ssi=True,
+        reads_take_shared_locks=False,
         deadlock_error="deadlock detected",
     ),
     EngineProfile.MYSQL: ProfileBehaviour(
@@ -73,6 +77,7 @@ PROFILES: dict[EngineProfile, ProfileBehaviour] = {
         read_write_error="",
         lost_update_at_repeatable_read=True,
         serializable_uses_ssi=False,
+        reads_take_shared_locks=True,
         deadlock_error="Deadlock found when trying to get lock; try restarting transaction",
     ),
     EngineProfile.GENERIC: ProfileBehaviour(
@@ -80,6 +85,7 @@ PROFILES: dict[EngineProfile, ProfileBehaviour] = {
         read_write_error="serialization failure: read/write dependencies",
         lost_update_at_repeatable_read=False,
         serializable_uses_ssi=True,
+        reads_take_shared_locks=False,
         deadlock_error="deadlock detected",
     ),
 }
