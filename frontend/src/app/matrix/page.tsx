@@ -6,7 +6,20 @@ import FigureCard from "@/components/figure-card";
 import { ApiError, getMatrix } from "@/lib/api";
 import type { MatrixRow } from "@/lib/types";
 
-const ANOMALIES = ["G0", "G1a", "G1b", "G1c", "OTV", "PMP", "P4", "G-single", "G2-item", "G2"];
+// the G-codes are the literature's names and the column has to stay narrow, so the plain
+// english sits under the code rather than replacing it
+const ANOMALIES: { code: string; name: string }[] = [
+  { code: "G0", name: "write cycle" },
+  { code: "G1a", name: "aborted read" },
+  { code: "G1b", name: "intermediate read" },
+  { code: "G1c", name: "circular info" },
+  { code: "OTV", name: "observed txn vanishes" },
+  { code: "PMP", name: "predicate many preceders" },
+  { code: "P4", name: "lost update" },
+  { code: "G-single", name: "read skew" },
+  { code: "G2-item", name: "write skew" },
+  { code: "G2", name: "anti dependency cycle" },
+];
 
 export default function MatrixPage() {
   const [rows, setRows] = useState<MatrixRow[] | null>(null);
@@ -105,13 +118,16 @@ export default function MatrixPage() {
                     >
                       level
                     </th>
-                    {ANOMALIES.map((anomaly) => (
+                    {ANOMALIES.map(({ code, name }) => (
                       <th
-                        key={anomaly}
+                        key={code}
                         scope="col"
-                        className="px-2 py-2 text-left font-medium font-mono text-[var(--color-ink-soft)] text-xs"
+                        className="px-2 py-2 text-left align-bottom font-medium text-[var(--color-ink-soft)] text-xs"
                       >
-                        {anomaly}
+                        <span className="block font-mono">{code}</span>
+                        <span className="block max-w-24 font-normal text-[10px] text-[var(--color-ink-faint)] leading-tight">
+                          {name}
+                        </span>
                       </th>
                     ))}
                   </tr>
