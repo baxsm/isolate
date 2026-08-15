@@ -7,7 +7,7 @@ from isolate.types import EngineProfile, IsolationLevel
 
 @dataclass(frozen=True)
 class LevelBehaviour:
-    """Isolation level as data. The executor reads these flags, it does not branch on level."""
+    """Isolation level as data, so the rules sit in one table rather than in scattered ifs."""
 
     snapshot_per_statement: bool
     sees_uncommitted: bool
@@ -54,7 +54,8 @@ class ProfileBehaviour:
     """MySQL repeatable read is monotonic atomic view, not snapshot isolation. Its reads
     look the same, but writes skip the first-updater-wins abort, so P4 is lost in silence."""
     serializable_uses_ssi: bool
-    """MySQL prevents G2 by locking and deadlock, error 1213, not by SSI."""
+    """Whether serializable detects a dangerous structure at commit and aborts the pivot.
+    False for MySQL, which prevents G2 by locking and deadlocking instead."""
     reads_take_shared_locks: bool
     """MySQL serializable promotes every select to a shared lock read, so a later writer
     deadlocks instead of being detected as a dangerous structure at commit."""

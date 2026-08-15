@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+from isolate.levels import LEVELS
 from isolate.types import IsolationLevel, Snapshot, TxnState, Version
 
 
@@ -21,10 +22,10 @@ def take_snapshot(
 def committed_at_snapshot(xid: int, snapshot: Snapshot, states: dict[int, TxnState]) -> bool:
     """Whether xid's work counts as committed from this snapshot's point of view.
 
-    Three tests in order, and the order matters. An xid at or above xmax started after the
-    snapshot was taken and is invisible whatever it did. An xid in xip was in flight at
-    snapshot time, so its later commit is still invisible. Only then does the real state
-    decide.
+    Four tests in order, and the order matters. Xid 0 is the initial load, which every
+    snapshot sees. An xid at or above xmax started after the snapshot was taken and is
+    invisible whatever it did. An xid in xip was in flight at snapshot time, so its later
+    commit is still invisible. Only then does the real state decide.
     """
     if xid == 0:
         return True
@@ -47,10 +48,12 @@ def is_visible(
     The isolation level does not select a different algorithm. It only decides whether
     uncommitted work is admitted, and (via the caller) when the snapshot was taken.
     """
+    sees_uncommitted = LEVELS[level].sees_uncommitted
+
     if version.xmin == viewer:
         # a transaction always sees its own writes, and its own deletes hide the row
         creator_visible = True
-    elif level is IsolationLevel.READ_UNCOMMITTED:
+    elif sees_uncommitted:
         # no snapshot filtering, so even an aborted writer's value is readable. that is G1a
         creator_visible = True
     else:
@@ -63,7 +66,7 @@ def is_visible(
         return True
     if version.xmax == viewer:
         return False
-    if level is IsolationLevel.READ_UNCOMMITTED:
+    if sees_uncommitted:
         return states.get(version.xmax) is not TxnState.ABORTED
 
     # the row is live for this viewer unless the expiring transaction counts as committed
