@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Hermitage-10%20anomalies-5b5bd6" alt="Hermitage, 10 anomalies">
   <img src="https://img.shields.io/badge/oracles-PostgreSQL%2018.4-29a383" alt="Checked against PostgreSQL 18.4">
-  <img src="https://img.shields.io/badge/tests-204%20engine%20%2B%2075%20audit-1c2024" alt="204 engine tests and 75 audit checks">
+  <img src="https://img.shields.io/badge/tests-207%20engine%20%2B%2075%20audit-1c2024" alt="207 engine tests and 75 audit checks">
   <img src="https://img.shields.io/badge/TypeScript-strict-3178c6" alt="TypeScript strict">
 </p>
 
@@ -139,7 +139,7 @@ anywhere else is blocked in the browser while every request still succeeds from 
 
 ## Checks
 
-Engine, 204 tests including the Hermitage goldens and hypothesis generated schedules:
+Engine, 207 tests including the Hermitage goldens and hypothesis generated schedules:
 
     cd engine
     uv run pytest
@@ -151,7 +151,7 @@ Frontend, 51 unit and component tests:
     npm run lint
     npm run test
 
-Then the browser suite, 96 checks against a running engine. The audit walks every route at 1440 and
+Then the browser suite, 98 checks against a running engine. The audit walks every route at 1440 and
 375 and fails on nested containers, offscreen elements, hover styles on things that cannot be
 clicked, missing pointer cursors, sideways scroll, axe violations, and computed WCAG contrast in
 both themes. The rest drive the controls with a real pointer, because a control that renders
