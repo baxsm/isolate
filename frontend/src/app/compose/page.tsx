@@ -24,6 +24,15 @@ const FALLBACK: Operation[] = [
 
 const INITIAL = { "1": 10, "2": 20 };
 
+const LEVELS: IsolationLevel[] = [
+  "read_uncommitted",
+  "read_committed",
+  "repeatable_read",
+  "serializable",
+];
+
+const PROFILES: EngineProfile[] = ["postgres", "mysql", "generic"];
+
 export default function ComposePage() {
   const { scenarios } = useScenarios();
 
@@ -63,8 +72,14 @@ export default function ComposePage() {
     const scenario = scenarios.find((s) => s.id === wanted);
     if (!scenario) return;
     const txns = [...new Set(scenario.operations.map((op) => op.txn))];
+    // a matrix cell is an anomaly at one engine and one level, and it links here with all
+    // three. without them every cell opened on the postgres default, which quietly answers
+    // a different question than the one clicked
+    const level = LEVELS.find((l) => l === search.get("level")) ?? "repeatable_read";
+    const profile = PROFILES.find((p) => p === search.get("engine"));
     setOperations(scenario.operations);
-    setIsolation(Object.fromEntries(txns.map((txn) => [txn, "repeatable_read"])));
+    setIsolation(Object.fromEntries(txns.map((txn) => [txn, level])));
+    if (profile) setEngine(profile);
     setTitle(`${scenario.id} · ${scenario.title}`);
     setLoadedFrom(scenario.source);
   }, [wanted, scenarios, search]);
@@ -125,7 +140,13 @@ export default function ComposePage() {
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="flex flex-col gap-6">
-          <FigureCard title="Operations">
+          <FigureCard
+            title="Operations"
+            // the timeline can hold more steps than this list: a write that blocks is
+            // retried when the lock clears, and that retry is a step nobody typed. saying
+            // so beats a reader counting eight rows against nine marks
+            aside={<span className="text-[var(--color-ink-soft)] text-xs">what you asked for</span>}
+          >
             <ScheduleEditor operations={operations} onChange={edit} />
             {missing && <p className="mt-3 text-[var(--color-ink-soft)] text-xs">{missing}</p>}
           </FigureCard>

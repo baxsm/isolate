@@ -235,7 +235,16 @@ const Workbench: FC<WorkbenchProps> = ({
       </div>
 
       {summary && (
-        <FigureCard title="Outcome">
+        <FigureCard
+          title="Outcome"
+          // this panel is the whole run, not the current step. unlabelled, a reader at
+          // step 1 reads "Aborted T2" as something that happened at step 1
+          aside={
+            <span className="text-[var(--color-ink-soft)] text-xs">
+              after all {steps.length} steps
+            </span>
+          }
+        >
           <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
             <div className="flex gap-2">
               <dt className="text-[var(--color-ink-soft)]">Committed</dt>

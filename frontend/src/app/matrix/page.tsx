@@ -21,6 +21,32 @@ const ANOMALIES: { code: string; name: string }[] = [
   { code: "G2", name: "anti dependency cycle" },
 ];
 
+const ENGINE_PARAM: Record<string, string> = {
+  PostgreSQL: "postgres",
+  "MySQL/InnoDB": "mysql",
+};
+
+const LEVEL_PARAM: Record<string, string> = {
+  "read uncommitted": "read_uncommitted",
+  "read committed": "read_committed",
+  "repeatable read": "repeatable_read",
+  serializable: "serializable",
+};
+
+/**
+ * A cell is an anomaly at one engine and one level, so its link has to carry all three.
+ * Sending only the scenario opened every cell on the PostgreSQL default, which answered a
+ * question the reader had not asked and looked like the right answer.
+ */
+function cellHref(scenarioId: string, engine: string, level: string): string {
+  const params = new URLSearchParams({ scenario: scenarioId });
+  const engineParam = ENGINE_PARAM[engine];
+  const levelParam = LEVEL_PARAM[level];
+  if (engineParam) params.set("engine", engineParam);
+  if (levelParam) params.set("level", levelParam);
+  return `/compose?${params.toString()}`;
+}
+
 export default function MatrixPage() {
   const [rows, setRows] = useState<MatrixRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +174,7 @@ export default function MatrixPage() {
                       {row.cells.map((cell) => (
                         <td key={cell.anomaly} className="px-2 py-2">
                           <Link
-                            href={`/compose?scenario=${encodeURIComponent(cell.scenario_id)}`}
+                            href={cellHref(cell.scenario_id, row.engine, row.label)}
                             aria-label={`${cell.anomaly} at ${row.engine} ${row.label}: ${
                               cell.computed ? "prevented" : "allowed"
                             }${cell.agrees ? "" : ", disagrees with the published table"}. Open ${

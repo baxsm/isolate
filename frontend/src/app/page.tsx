@@ -112,15 +112,11 @@ export default function HomePage() {
           isolation, which is not serializable.
         </p>
         <p>
-          Run the same schedule against a different engine profile and the outcome changes with the
-          label held fixed.
+          Both transactions below are set to repeatable read and stay there. Switch the engine from
+          PostgreSQL to MySQL, step to the end, and read the outcome: the label never moves and the
+          result does.
         </p>
-        <ArticleFigure
-          operations={LOST_UPDATE}
-          level="repeatable_read"
-          engineControl
-          levelControl={false}
-        />
+        <ArticleFigure operations={LOST_UPDATE} level="repeatable_read" engineControl />
         <p>
           The{" "}
           <Link href="/matrix" className="text-[var(--color-t1-text)] underline underline-offset-4">

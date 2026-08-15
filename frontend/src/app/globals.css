@@ -113,7 +113,9 @@ body {
 @media (min-width: 1024px) {
   .figure-wide {
     width: min(60rem, calc(100vw - 6rem));
-    margin-left: calc((68ch - min(60rem, 100vw - 6rem)) / 2);
+    /* centre on the column the figure sits in, not on 68ch. the article box is 68ch
+       minus its own padding, and using the raw measure pushed the figure 92px left */
+    margin-left: calc((100% - min(60rem, 100vw - 6rem)) / 2);
   }
 }
 
