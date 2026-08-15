@@ -1,5 +1,9 @@
-export function cn(...classes: (string | false | null | undefined)[]): string {
-  return classes.filter(Boolean).join(" ");
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+/** clsx for conditionals, twMerge so a class passed in beats the component's own. */
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
 }
 
 /** Transaction colour, by number. Wraps at three because the palette holds three. */

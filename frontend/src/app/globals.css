@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 /*
+  shadcn's components carry `dark:` variants, and tailwind's default dark variant looks for
+  a `.dark` class. This app switches on `data-theme`, so without this every `dark:` rule in
+  components/ui silently never fires: the class is in the markup and the style never lands.
+*/
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
   Transaction colours are measured, not chosen. An iris/jade/ruby set collapses to 19.5
   CIE76 separation under protanopia; this set holds 64.2 protan and 70.6 deutan. The three
   step-9 fills are identical in Radix light and dark, so a fill never moves across themes.
@@ -20,8 +27,9 @@
   --color-t2-text: #208368;
   --color-t3-text: #ab6400;
 
+  --surface-card: #ffffff;
   --color-ground: #fcfcfd;
-  --color-card: #ffffff;
+  --color-card: var(--surface-card);
   --color-inset: #f4f4f6;
   --color-line: #d9d9e0;
   --color-line-strong: #b9bbc6;
@@ -45,14 +53,63 @@
 }
 
 /*
+  shadcn's components are written against its own token names. Rather than let its default
+  greyscale in beside the measured palette, every name it uses is pointed at a token from
+  ui.md. `shadcn init` writes a full oklch ramp here by default, including a grey --ring
+  and a 10px --radius, and that ramp is what shifted this UI when it was first run.
+
+  Radius is 4px, from the surfaces budget. Two surfaces that differ only by radius are not
+  two surfaces, so there is one value and nothing rounds differently.
+
+  `inline` keeps each value as a var() reference rather than resolving it once at build
+  time, so a token that moves between themes follows the blocks below at runtime rather
+  than freezing at its light value.
+*/
+@theme inline {
+  --color-background: var(--color-ground);
+  --color-foreground: var(--color-ink);
+  /* --color-card is already this project's own token, used as an svg fill in the panels.
+     Naming it here as `var(--color-card)` is circular, resolves to nothing, and turned
+     every timeline mark black. Both point at --surface-card, which is the one definition
+     the theme blocks below move. */
+  --color-card-foreground: var(--color-ink);
+  --color-popover: var(--surface-card);
+  --color-popover-foreground: var(--color-ink);
+
+  /* the primary action is a transaction colour, so a button never introduces a fourth hue */
+  --color-primary: var(--color-t1);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-inset);
+  --color-secondary-foreground: var(--color-ink);
+
+  --color-muted: var(--color-inset);
+  --color-muted-foreground: var(--color-ink-soft);
+  --color-accent: var(--color-inset);
+  --color-accent-foreground: var(--color-ink);
+
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: var(--color-line);
+  --color-input: var(--color-line);
+  --color-ring: var(--color-t1);
+
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+}
+
+/*
   Dark is a secondary theme. Fills hold; the ground, the text ramp and the halo flip.
   A dark halo is invisible on a dark ground, which is why that one token inverts and the
   transaction tokens do not.
 */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --surface-card: #18191b;
     --color-ground: #111113;
-    --color-card: #18191b;
+    --color-card: var(--surface-card);
     --color-inset: #212225;
     --color-line: #2e3035;
     --color-line-strong: #43484e;
@@ -71,8 +128,9 @@
 }
 
 :root[data-theme="dark"] {
+  --surface-card: #18191b;
   --color-ground: #111113;
-  --color-card: #18191b;
+  --color-card: var(--surface-card);
   --color-inset: #212225;
   --color-line: #2e3035;
   --color-line-strong: #43484e;
@@ -122,6 +180,30 @@ body {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/*
+  Tailwind v4 defaults a button to `cursor: default`, and shadcn's components do not add a
+  pointer back: its select items are explicitly `cursor-default`. That is the "nothing
+  looks clickable" complaint, and the audit fails the build over it. Set here rather than
+  in components/ui, which is generated and is overwritten by the next `shadcn add`.
+*/
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="option"],
+[data-slot="select-item"],
+[data-slot="select-trigger"]:not(:disabled) {
+  cursor: pointer;
+}
+
+/*
+  shadcn presses a button with `active:translate-y-px` alone. One pixel of movement is a
+  press you feel and cannot see in a still, so the ground darkens with it. A control with
+  a hover and no visible press reads as a picture of a button.
+*/
+button:not(:disabled):active,
+[data-slot="select-trigger"]:not(:disabled):active {
+  background-color: var(--color-line);
 }
 
 /*
