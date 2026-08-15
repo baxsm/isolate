@@ -81,13 +81,32 @@ const ComposeWorkbench: FC<{ seed: RunResponse | null }> = ({ seed }) => {
     setOperations(next);
     setTitle("Edited schedule");
     setLoadedFrom(null);
-    setCopied(false);
     setIsolation((current) => {
       const merged: Record<number, IsolationLevel> = {};
       for (const op of next) merged[op.txn] = current[op.txn] ?? "repeatable_read";
       return merged;
     });
   }, []);
+
+  /*
+    "Link copied" is about one click, not a mode. It clears on a timer and on any edit to
+    what the link encodes, because a confirmation left standing over a changed schedule
+    claims the clipboard holds something it does not.
+  */
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  // the level and engine dropdowns change the link without going through `edit`, so this
+  // watches what the url actually encodes rather than trusting each control to reset it
+  const shareKey = encodeSchedule({ operations, isolation, engine });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the encoded url, not
+  // on `copied`, which the timer above owns
+  useEffect(() => {
+    setCopied(false);
+  }, [shareKey]);
 
   const share = useCallback(() => {
     const url = `${window.location.origin}/compose?${encodeSchedule({ operations, isolation, engine })}`;
