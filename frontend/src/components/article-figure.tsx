@@ -3,6 +3,7 @@
 import type { FC } from "react";
 import { useCallback, useState } from "react";
 import Workbench from "@/components/workbench";
+import { DEFAULT_INITIAL } from "@/lib/default-schedule";
 import type { EngineProfile, IsolationLevel, Operation } from "@/lib/types";
 
 interface ArticleFigureProps {
@@ -15,8 +16,6 @@ interface ArticleFigureProps {
   /** Panels this figure needs. Defaults to both; see the note in `workbench.tsx`. */
   panels?: { versions?: boolean; graph?: boolean };
 }
-
-const INITIAL = { "1": 10, "2": 20 };
 
 /**
  * One figure, one schedule, one step index.
@@ -52,7 +51,7 @@ const ArticleFigure: FC<ArticleFigureProps> = ({
         operations={operations}
         isolation={isolation}
         engine={profile}
-        initial={INITIAL}
+        initial={DEFAULT_INITIAL}
         onIsolationChange={levelControl ? setAll : undefined}
         onEngineChange={engineControl ? setProfile : undefined}
         panels={panels}

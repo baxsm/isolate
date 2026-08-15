@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EngineUnreachable from "@/components/engine-unreachable";
 import FigureCard from "@/components/figure-card";
 import { getMatrix, getScenarios } from "@/lib/api";
 import { ROW_LINK } from "@/lib/interaction";
@@ -28,14 +29,7 @@ export default async function ScenariosPage() {
   ]);
 
   if (!scenarios) {
-    return (
-      <div className="mx-auto max-w-[1200px] px-6 py-6">
-        <h1 className="font-medium text-xl tracking-tight">Scenarios</h1>
-        <p className="mt-6 text-[var(--color-danger)] text-sm">
-          Could not reach the engine. Check it is running, then reload.
-        </p>
-      </div>
-    );
+    return <EngineUnreachable title="Scenarios" />;
   }
 
   const preventedBy = levelsThatPrevent(matrix);

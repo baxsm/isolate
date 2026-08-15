@@ -104,6 +104,7 @@
   --color-input: var(--color-line);
   --color-ring: var(--color-t1);
 
+  --radius-xs: 4px;
   --radius-sm: 4px;
   --radius-md: 4px;
   --radius-lg: 4px;
@@ -120,50 +121,71 @@
   A dark halo is invisible on a dark ground, which is why those tokens invert and the
   transaction tokens do not.
 
-  Written as one declaration list behind two selectors. It used to be two verbatim copies,
-  one for the OS preference and one for the explicit attribute, so every palette change had
-  to be made twice or the themes drifted apart.
+  Every value is written once below. The two selectors that switch the theme only assign
+  those values across, because a palette that had to be edited in two places was edited in
+  one and drifted.
 */
+/*
+  The values live once, in `--dark-*`. The two selectors below only assign them across, so
+  the OS preference and the explicit attribute cannot drift apart: `@media` cannot be merged
+  into a selector list, but a shared source of values can be.
+*/
+:root {
+  --dark-surface-card: #18191b;
+  --dark-ground: #111113;
+  --dark-inset: #212225;
+  --dark-line: #2e3035;
+  --dark-line-strong: #43484e;
+  --dark-ink: #eeeef0;
+  --dark-ink-soft: #b0b4ba;
+  --dark-ink-faint: #8b8f98;
+  --dark-t1-text: #b1a9ff;
+  --dark-t2-text: #1fd8a4;
+  --dark-t3-text: #ffca16;
+  /* ruby-2 #fed2e1 measured L* 88.4 against the focus token's 94.1, only dE 18.3 apart, so
+     a node in a cycle wore a near-white ring that read as a stuck focus outline. This is
+     L* 58.4, dE 74.5 from focus and still 5.16 on the card */
+  --dark-halo: #f04f84;
+  --dark-danger: #ff9592;
+  --dark-focus: #eeeef0;
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --surface-card: #18191b;
-    --color-ground: #111113;
+    --surface-card: var(--dark-surface-card);
+    --color-ground: var(--dark-ground);
     --color-card: var(--surface-card);
-    --color-inset: #212225;
-    --color-line: #2e3035;
-    --color-line-strong: #43484e;
-    --color-ink: #eeeef0;
-    --color-ink-soft: #b0b4ba;
-    --color-ink-faint: #8b8f98;
-    --color-t1-text: #b1a9ff;
-    --color-t2-text: #1fd8a4;
-    --color-t3-text: #ffca16;
-    /* ruby-2 #fed2e1 measured L* 88.4 against the focus token's 94.1, only dE 18.3 apart,
-       so a node in a cycle wore a near-white ring that read as a stuck focus outline. This
-       is L* 58.4, dE 74.5 from focus and still 5.16 on the card */
-    --color-halo: #f04f84;
-    --color-danger: #ff9592;
-    --color-focus: #eeeef0;
+    --color-inset: var(--dark-inset);
+    --color-line: var(--dark-line);
+    --color-line-strong: var(--dark-line-strong);
+    --color-ink: var(--dark-ink);
+    --color-ink-soft: var(--dark-ink-soft);
+    --color-ink-faint: var(--dark-ink-faint);
+    --color-t1-text: var(--dark-t1-text);
+    --color-t2-text: var(--dark-t2-text);
+    --color-t3-text: var(--dark-t3-text);
+    --color-halo: var(--dark-halo);
+    --color-danger: var(--dark-danger);
+    --color-focus: var(--dark-focus);
   }
 }
 
 :root[data-theme="dark"] {
-  --surface-card: #18191b;
-  --color-ground: #111113;
+  --surface-card: var(--dark-surface-card);
+  --color-ground: var(--dark-ground);
   --color-card: var(--surface-card);
-  --color-inset: #212225;
-  --color-line: #2e3035;
-  --color-line-strong: #43484e;
-  --color-ink: #eeeef0;
-  --color-ink-soft: #b0b4ba;
-  --color-ink-faint: #8b8f98;
-  --color-t1-text: #b1a9ff;
-  --color-t2-text: #1fd8a4;
-  --color-t3-text: #ffca16;
-  /* must match the media-query block above; see the note there for the measurement */
-  --color-halo: #f04f84;
-  --color-danger: #ff9592;
-  --color-focus: #eeeef0;
+  --color-inset: var(--dark-inset);
+  --color-line: var(--dark-line);
+  --color-line-strong: var(--dark-line-strong);
+  --color-ink: var(--dark-ink);
+  --color-ink-soft: var(--dark-ink-soft);
+  --color-ink-faint: var(--dark-ink-faint);
+  --color-t1-text: var(--dark-t1-text);
+  --color-t2-text: var(--dark-t2-text);
+  --color-t3-text: var(--dark-t3-text);
+  --color-halo: var(--dark-halo);
+  --color-danger: var(--dark-danger);
+  --color-focus: var(--dark-focus);
 }
 
 html {
