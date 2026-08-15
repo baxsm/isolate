@@ -266,6 +266,16 @@ button:not(:disabled):active,
   already carries a ring for "current", so two competing rectangles sit on one 26px mark.
   The mark's own stroke thickens instead, driven from React the same way hover is.
 */
+/*
+  Every focus state, not only `:focus-visible`. Scoping this to `:focus-visible` left the
+  plain `:focus` case alone, and a mouse click sets `:focus` without `:focus-visible`: the
+  clicked mark computed `outline: 5px auto rgb(16, 16, 16)`, the browser's own ring, which
+  is the white box around a mark that has just been clicked.
+
+  The panels draw their own focus ring as an svg rect when `:focus-visible` really is set,
+  so suppressing the browser's outline here removes a duplicate, not the only indicator.
+*/
+svg [role="button"]:focus,
 svg [role="button"]:focus-visible {
   outline: none;
 }

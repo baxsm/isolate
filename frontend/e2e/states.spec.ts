@@ -450,3 +450,42 @@ test.describe("a cycle halo is not a focus ring", () => {
     });
   }
 });
+
+test.describe("clicking never leaves the browser's own outline", () => {
+  /*
+    A mouse click sets `:focus` but not `:focus-visible`. The suppression rule was scoped to
+    `:focus-visible` alone, so the plain `:focus` case fell through to the UA default and a
+    clicked mark computed `outline: 5px auto rgb(16, 16, 16)` - a white box around whatever
+    the reader last clicked. The panels draw their own ring when focus really is visible, so
+    the browser's is always a duplicate here.
+  */
+  for (const target of [
+    { name: "timeline mark", testid: "mark-2" },
+    { name: "graph node", testid: "node-1" },
+  ]) {
+    test(`${target.name} has no ua outline after a pointer click`, async ({ page }) => {
+      await page.goto("/compose?scenario=G2-item");
+      await settle(page);
+      await page.getByRole("button", { name: "Last step" }).first().click();
+      await page.waitForTimeout(400);
+
+      const el = page.getByTestId(target.testid);
+      await el.click();
+      await page.waitForTimeout(200);
+
+      const state = await el.evaluate((node) => {
+        const s = getComputedStyle(node);
+        return {
+          focused: node === document.activeElement,
+          focusVisible: node.matches(":focus-visible"),
+          outlineStyle: s.outlineStyle,
+        };
+      });
+
+      expect(state.focused).toBe(true);
+      // clicked, so this is the case that used to paint the ua ring
+      expect(state.focusVisible).toBe(false);
+      expect(state.outlineStyle).toBe("none");
+    });
+  }
+});
