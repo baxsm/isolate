@@ -28,7 +28,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
-        <header className="border-[var(--color-line)] border-b">
+        {/*
+          Sticky, because the nav is how you move between four routes and scrolling a long
+          article or a wide matrix should not take it away. It carries the page ground rather
+          than a transparent background, or the content scrolls visibly underneath it.
+        */}
+        <header className="sticky top-0 z-30 border-[var(--color-line)] border-b bg-[var(--color-ground)]">
           <SiteNav />
         </header>
         <main id="main">{children}</main>

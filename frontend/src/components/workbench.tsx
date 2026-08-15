@@ -2,6 +2,7 @@
 
 import type { FC } from "react";
 import { useMemo, useRef, useState } from "react";
+import FigureCard from "@/components/figure-card";
 import GraphPanel from "@/components/graph-panel";
 import Pane from "@/components/pane";
 import TimelinePanel from "@/components/timeline-panel";
@@ -10,7 +11,13 @@ import TxnSelect from "@/components/txn-select";
 import { Button } from "@/components/ui/button";
 import VersionPanel from "@/components/version-panel";
 import WorkbenchToolbar from "@/components/workbench-toolbar";
-import type { EngineProfile, IsolationLevel, Operation, RunRequest } from "@/lib/types";
+import type {
+  EngineProfile,
+  IsolationLevel,
+  Operation,
+  RunRequest,
+  RunResponse,
+} from "@/lib/types";
 import { useRun } from "@/lib/use-run";
 import { cn, describeOp } from "@/lib/utils";
 
@@ -29,6 +36,12 @@ interface WorkbenchProps {
    * introduces edges onward.
    */
   panels?: { versions?: boolean; graph?: boolean };
+  /**
+   * The same schedule already run on the server, so the first paint shows real steps
+   * instead of "No operations yet". Only correct when it is the run of `operations` at
+   * `isolation` and `engine` as they arrive; a stale seed would paint the wrong schedule.
+   */
+  seed?: RunResponse | null;
 }
 
 /**
@@ -45,6 +58,7 @@ const Workbench: FC<WorkbenchProps> = ({
   onIsolationChange,
   onEngineChange,
   panels,
+  seed,
 }) => {
   const showVersions = panels?.versions ?? true;
   const showGraph = panels?.graph ?? true;
@@ -63,7 +77,7 @@ const Workbench: FC<WorkbenchProps> = ({
     };
   }, [operations, isolation, engine, initial]);
 
-  const { steps, step, summary, index, setIndex, loading, error, retry } = useRun(request);
+  const { steps, step, summary, index, setIndex, loading, error, retry } = useRun(request, seed);
   const txns = useMemo(
     () =>
       Object.keys(isolation)
@@ -71,11 +85,18 @@ const Workbench: FC<WorkbenchProps> = ({
         .sort((a, b) => a - b),
     [isolation],
   );
+  /*
+    The chain has to be read through somebody's eyes, so the viewer falls back to the first
+    transaction. Selection is not the same thing: it is something the reader did. Passing the
+    fallback through as `selected` put a ring on a node nobody had picked, which on a single
+    node graph is a permanent pale halo that reads as a stuck focus ring.
+  */
   const activeViewer = viewer ?? (step ? Number(Object.keys(step.txns)[0] ?? 0) || null : null);
+  const selected = viewer;
 
   if (error) {
     return (
-      <div className="rounded border border-[var(--color-line)] bg-[var(--color-card)] p-4">
+      <FigureCard bare className="p-4">
         <Pane title="Schedule">
           <div className="flex flex-col items-start gap-3">
             <p className="text-[var(--color-danger)] text-sm">{error}</p>
@@ -84,7 +105,7 @@ const Workbench: FC<WorkbenchProps> = ({
             </Button>
           </div>
         </Pane>
-      </div>
+      </FigureCard>
     );
   }
 
@@ -96,11 +117,7 @@ const Workbench: FC<WorkbenchProps> = ({
       toolbar because it is what the reader is building; the rest is what the engine says
       back about it.
     */
-    <div
-      ref={rigRef}
-      tabIndex={-1}
-      className="flex min-w-0 flex-col overflow-hidden rounded border border-[var(--color-line)] bg-[var(--color-card)] outline-none"
-    >
+    <FigureCard bare ref={rigRef} tabIndex={-1}>
       <div className="border-[var(--color-line)] border-b p-4">
         <WorkbenchToolbar
           engine={engine}
@@ -178,7 +195,7 @@ const Workbench: FC<WorkbenchProps> = ({
             <VersionPanel
               step={step}
               viewer={activeViewer}
-              selected={activeViewer}
+              selected={selected}
               onSelectTxn={setViewer}
             />
             {step && activeViewer != null && step.txns[activeViewer] && (
@@ -204,7 +221,7 @@ const Workbench: FC<WorkbenchProps> = ({
             }
             reserveAside
           >
-            <GraphPanel step={step} onSelectTxn={setViewer} selected={activeViewer} />
+            <GraphPanel step={step} onSelectTxn={setViewer} selected={selected} />
             {/* reserved, so the graph does not move up and down as edges appear */}
             <p className="mt-2 min-h-4 text-[var(--color-ink-soft)] text-xs">
               {step && step.edges.length === 0 && "No dependencies between transactions yet."}
@@ -276,7 +293,7 @@ const Workbench: FC<WorkbenchProps> = ({
           )}
         </Pane>
       )}
-    </div>
+    </FigureCard>
   );
 };
 

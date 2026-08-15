@@ -22,9 +22,19 @@ interface UseRunResult {
  * its own index, which is what stops the three views disagreeing without needing a test to
  * prove they agree.
  */
-export function useRun(request: RunRequest | null): UseRunResult {
-  const [steps, setSteps] = useState<Step[]>([]);
-  const [summary, setSummary] = useState<RunResponse["summary"] | null>(null);
+export function useRun(request: RunRequest | null, seed?: RunResponse | null): UseRunResult {
+  /*
+    `seed` is the same schedule already run on the server. Without it the first paint has no
+    steps and every panel renders its empty state - "No operations yet", "No transactions
+    yet" - which is a loading state wearing an empty state's words, for a schedule whose
+    contents are known before the page is built.
+
+    The effect still runs on mount and replaces this, which costs one request and keeps a
+    single code path for every later edit. What it buys is that the first thing painted is
+    the real schedule.
+  */
+  const [steps, setSteps] = useState<Step[]>(seed?.steps ?? []);
+  const [summary, setSummary] = useState<RunResponse["summary"] | null>(seed?.summary ?? null);
   const [index, setIndexRaw] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

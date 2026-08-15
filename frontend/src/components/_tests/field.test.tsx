@@ -12,27 +12,33 @@ describe("Field", () => {
     expect(screen.getByText("engine")).toBeInTheDocument();
   });
 
-  it("carries a transaction hue as a rule, not as a filled chip", () => {
-    // a chip beside the control competed with the value it was labelling, and made two
-    // controls doing the same job look like different kinds of thing
+  it("carries a transaction hue as the label's own ink", () => {
+    /*
+      Not a chip beside the control, which competed with the value it was labelling, and not
+      a rule down the left edge, which is a border: the surfaces budget in ui.md allows a
+      border on a figure card and nowhere else.
+    */
     render(
-      <Field label="T1 level" accent="var(--color-t1)">
+      <Field label="T1 level" accent="var(--color-t1-text)">
         <input aria-label="Isolation level for transaction 1" />
       </Field>,
     );
     const label = screen.getByText("T1 level");
-    expect(label.getAttribute("style")).toContain("border-left");
-    expect(label.getAttribute("style")).toContain("--color-t1");
-    expect(label).not.toHaveStyle({ backgroundColor: "var(--color-t1)" });
+    const style = label.getAttribute("style") ?? "";
+    expect(style).toContain("--color-t1-text");
+    expect(style).not.toContain("border");
+    expect(style).not.toContain("background");
   });
 
-  it("has no accent styling when it belongs to no transaction", () => {
+  it("falls back to the faint ink when it belongs to no transaction", () => {
     render(
       <Field label="engine">
         <input aria-label="Engine profile" />
       </Field>,
     );
-    expect(screen.getByText("engine").getAttribute("style")).toBeNull();
+    const style = screen.getByText("engine").getAttribute("style") ?? "";
+    expect(style).toContain("--color-ink-faint");
+    expect(style).not.toContain("border");
   });
 
   it("marks a disabled field without dimming its label", () => {

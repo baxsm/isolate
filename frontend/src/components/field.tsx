@@ -6,7 +6,11 @@ import { cn } from "@/lib/utils";
 interface FieldProps {
   /** What the control sets. Always present, always in the same place. */
   label: string;
-  /** A transaction hue when the field belongs to one transaction, else nothing. */
+  /**
+   * A transaction's *text* hue when the field belongs to one, from `txnTextColor`. It must
+   * be the step 11 token and never the step 9 fill: amber-9 on the card is 1.4:1 and the
+   * label would be unreadable.
+   */
   accent?: string;
   children: ReactNode;
   className?: string;
@@ -28,21 +32,18 @@ interface FieldProps {
  * again, and "key" as text. Two controls doing the same job looked like different kinds of
  * thing, and the chip competed with the value it was labelling.
  *
- * Here a label is always a label. When the field belongs to a transaction, the hue is a rule
- * down its left edge rather than a chip, so the pair reads as one object and the value stays
- * the loudest thing in it.
+ * Here a label is always a label. When the field belongs to a transaction, the label's own
+ * ink carries the hue. It was briefly a 2px rule down the left edge, which is a border, and
+ * the surfaces budget in `ui.md` allows a border on a figure card and nowhere else. Ink
+ * costs no space, cannot be mistaken for a container edge, and is already how a transaction
+ * is named in prose.
  */
 const Field: FC<FieldProps> = ({ label, accent, children, className, disabled }) => {
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", className)} data-disabled={disabled}>
       <span
-        className={cn(
-          "flex items-center gap-1.5 font-medium text-[10px] text-[var(--color-ink-faint)] uppercase tracking-wider",
-          accent && "pl-2",
-        )}
-        style={
-          accent ? { borderLeft: `2px solid ${accent}`, paddingLeft: 6, marginLeft: -8 } : undefined
-        }
+        className="flex items-center gap-1.5 font-medium text-[10px] uppercase tracking-wider"
+        style={{ color: accent ?? "var(--color-ink-faint)" }}
       >
         {label}
       </span>

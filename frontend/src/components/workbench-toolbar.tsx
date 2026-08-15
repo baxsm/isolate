@@ -4,7 +4,7 @@ import type { FC } from "react";
 import FieldSelect from "@/components/field-select";
 import StepTransport from "@/components/step-transport";
 import type { EngineProfile, IsolationLevel } from "@/lib/types";
-import { txnColor } from "@/lib/utils";
+import { txnTextColor } from "@/lib/utils";
 
 interface WorkbenchToolbarProps {
   engine: EngineProfile;
@@ -72,7 +72,7 @@ const WorkbenchToolbar: FC<WorkbenchToolbarProps> = ({
             <FieldSelect
               key={txn}
               caption={`T${txn} level`}
-              accent={txnColor(txn)}
+              accent={txnTextColor(txn)}
               label={`Isolation level for transaction ${txn}`}
               value={isolation[txn] ?? "repeatable_read"}
               onChange={(next) => onIsolationChange(txn, next as IsolationLevel)}

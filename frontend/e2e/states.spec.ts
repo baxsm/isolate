@@ -212,6 +212,16 @@ test.describe("one state language", () => {
     await page.getByRole("button", { name: "Last step" }).first().click();
     await page.waitForTimeout(500);
 
+    /*
+      Selection is something the reader did, so this picks a transaction first. Nothing is
+      selected at load by design: the viewer falls back to the first transaction so the
+      chain has somebody's eyes to read through, and passing that fallback through as
+      selection put a permanent ring on a node nobody had chosen.
+    */
+    await expect(page.locator("[data-testid='version-row'][data-selected='true']")).toHaveCount(0);
+    await page.getByTestId("node-1").click();
+    await page.waitForTimeout(300);
+
     const selected = page.locator("[data-testid='version-row'][data-selected='true']").first();
     await expect(selected).toHaveCount(1);
     const shadow = await selected.evaluate((el) => getComputedStyle(el).boxShadow);
