@@ -32,7 +32,7 @@ export default function MatrixPage() {
   return (
     <div className="mx-auto max-w-[1200px] px-6 py-8">
       <h1 className="font-medium text-xl tracking-tight">The matrix</h1>
-      <p className="mt-2 max-w-[68ch] text-[var(--color-ink-soft)] text-sm">
+      <p className="mt-2 max-w-[80ch] text-[var(--color-ink-soft)] text-sm">
         Computed live by running every scenario at every level, then compared against the table
         Kleppmann published. A cell that disagrees is marked, because hiding it would be the
         dishonest thing to do.
@@ -73,6 +73,19 @@ export default function MatrixPage() {
           </p>
 
           <FigureCard className="mt-6">
+            <div className="mb-3 flex flex-wrap items-center gap-x-6 gap-y-1 rounded bg-[var(--color-inset)] px-3 py-2 text-xs">
+              <span className="text-[var(--color-ink)]">
+                <span className="font-mono">allowed</span> the anomaly happens at this level
+              </span>
+              <span className="text-[var(--color-ink-soft)]">
+                <span className="font-mono text-[var(--color-ink-faint)]">safe</span> the level
+                prevents it
+              </span>
+              <span className="text-[var(--color-danger)]">
+                <span className="font-mono">!</span> disagrees with the published table
+              </span>
+              <span className="text-[var(--color-ink-soft)]">Every cell opens its schedule.</span>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <caption className="sr-only">
@@ -120,14 +133,25 @@ export default function MatrixPage() {
                         <td key={cell.anomaly} className="px-2 py-2">
                           <Link
                             href={`/compose?scenario=${encodeURIComponent(cell.scenario_id)}`}
-                            title={`${cell.anomaly}: ${cell.computed ? "prevented" : "allowed"} — open ${cell.scenario_id}`}
+                            aria-label={`${cell.anomaly} at ${row.engine} ${row.label}: ${
+                              cell.computed ? "prevented" : "allowed"
+                            }${cell.agrees ? "" : ", disagrees with the published table"}. Open ${
+                              cell.scenario_id
+                            }`}
                             className="tabular font-mono text-xs underline-offset-4 hover:underline"
                             style={{
-                              color: cell.agrees ? "var(--color-ink)" : "var(--color-danger)",
+                              color: cell.agrees
+                                ? cell.computed
+                                  ? "var(--color-ink-faint)"
+                                  : "var(--color-ink)"
+                                : "var(--color-danger)",
                             }}
                           >
-                            {cell.computed ? "yes" : "no"}
-                            {cell.agrees ? "" : "!"}
+                            {/* "prevented" and "allowed" rather than yes and no: yes to
+                                "does it prevent" and yes to "does it happen" are opposite
+                                answers, and the header does not say which was asked */}
+                            {cell.computed ? "safe" : "allowed"}
+                            {cell.agrees ? "" : " !"}
                           </Link>
                         </td>
                       ))}
