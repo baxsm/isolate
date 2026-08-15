@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FC } from "react";
+import ThemeToggle from "@/components/theme-toggle";
 import { FOCUS, NAV_LINK, NAV_LINK_ACTIVE, NAV_LINK_IDLE } from "@/lib/interaction";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,13 @@ const SiteNav: FC = () => {
       </Link>
       {/* says where the name stops and the routes start */}
       <span aria-hidden className="h-4 w-px shrink-0 bg-[var(--color-line)]" />
-      <ul className="flex items-center gap-4">
+      {/*
+        The links scroll rather than shrink. At 375 the four labels plus the wordmark already
+        fill the bar, so adding the toggle pushed Matrix underneath it: both measured as
+        on-screen while the button painted over the last 28px of the link. Scrolling keeps
+        every label at its own width and reachable.
+      */}
+      <ul className="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {links.map((link) => {
           const active = isActive(link.href);
           return (
@@ -56,6 +63,11 @@ const SiteNav: FC = () => {
           );
         })}
       </ul>
+      {/* the toggle sits at the far edge, on the same 1200px measure and 24px inset every
+          page uses, so it lines up with the content below it rather than the window */}
+      <div className="shrink-0">
+        <ThemeToggle />
+      </div>
     </nav>
   );
 };

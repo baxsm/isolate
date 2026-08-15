@@ -117,15 +117,9 @@
   transaction tokens do not.
 */
 /*
-  The dark palette. Fills hold; the ground, the text ramp, the halo and the focus ring flip.
-  A dark halo is invisible on a dark ground, which is why those tokens invert and the
-  transaction tokens do not.
+  The dark palette. Fills hold; the ground, the text ramp, the halo and the focus ring flip,
+  because a dark halo on a dark ground is invisible.
 
-  Every value is written once below. The two selectors that switch the theme only assign
-  those values across, because a palette that had to be edited in two places was edited in
-  one and drifted.
-*/
-/*
   The values live once, in `--dark-*`. The two selectors below only assign them across, so
   the OS preference and the explicit attribute cannot drift apart: `@media` cannot be merged
   into a selector list, but a shared source of values can be.

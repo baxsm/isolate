@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import SiteNav from "@/components/site-nav";
+import ThemeScript from "@/components/theme-script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,9 +19,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       something the running app could not show.
 
       Absent, the OS preference drives it through the media query, and the attribute stays
-      available for anything that wants to force a theme.
+      available for anything that wants to force a theme. `ThemeScript` writes it before the
+      first paint when the reader has chosen one, and because React never renders it here
+      there is no hydration mismatch and nothing to suppress.
     */
     <html lang="en">
+      <head>
+        <ThemeScript />
+      </head>
       <body>
         <a
           href="#main"

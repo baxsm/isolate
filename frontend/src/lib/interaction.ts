@@ -19,7 +19,7 @@ export const PROSE_LINK = [
 /** The active rule is a pseudo element, not a bottom border: it spans the label exactly and
  * keeps square ends on a rounded box. */
 export const NAV_LINK = [
-  "relative inline-block py-2 text-sm transition-colors",
+  "relative inline-block shrink-0 whitespace-nowrap py-2 text-sm transition-colors",
   "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-[7px] after:h-[2px] after:content-['']",
   FOCUS,
   "rounded-xs",
