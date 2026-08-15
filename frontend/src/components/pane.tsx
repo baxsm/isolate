@@ -7,23 +7,15 @@ interface PaneProps {
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
-  /**
-   * Reserves the aside's line even when there is nothing in it, so a pane does not change
-   * height when its status appears. Used where the aside is conditional.
-   */
+  /** Holds the aside's line when there is nothing in it, so the pane does not change height
+   * as a status appears. */
   reserveAside?: boolean;
 }
 
 /**
- * A region of the workbench, separated by a heading and space rather than a border.
- *
- * `FigureCard` is still the right container for a figure set into prose, where a card reads
- * as paper on a desk. Inside the workbench it was wrong: six bordered cards, each with a
- * bordered header, several holding bordered strips of bordered controls. Nesting a card in a
- * card breaks what a card means, and six equal boxes say nothing about what matters most.
- *
- * A pane has no border and no background. Hierarchy comes from the heading and the space
- * around it, so panes can sit inside one bordered surface without stacking boxes.
+ * A region of the workbench, separated by a heading and space rather than a border. This is
+ * what `FigureCard` is not: a card inside a card breaks what a card means, so panes stack
+ * inside one bordered surface without nesting boxes.
  */
 const Pane: FC<PaneProps> = ({ title, aside, children, className, reserveAside }) => {
   return (
@@ -32,8 +24,6 @@ const Pane: FC<PaneProps> = ({ title, aside, children, className, reserveAside }
         <h2 className="font-medium text-[11px] text-[var(--color-ink-faint)] uppercase tracking-wider">
           {title}
         </h2>
-        {/* the empty span holds the line's height so nothing below it moves when a status
-            appears. `reserveAside` is what makes that explicit rather than incidental */}
         {aside ?? (reserveAside ? <span aria-hidden /> : null)}
       </header>
       <div className="min-w-0">{children}</div>

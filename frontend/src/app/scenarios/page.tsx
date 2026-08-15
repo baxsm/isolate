@@ -46,11 +46,7 @@ export default async function ScenariosPage() {
         <ul className="flex flex-col">
           {scenarios.map((scenario, i) => (
             <li key={scenario.id} className={i === 0 ? "" : "border-[var(--color-line)] border-t"}>
-              {/*
-                The whole row is the target. Only the id used to be a link, so a 40px token
-                sat at the left of a full-width row of text that looked equally clickable
-                and was not.
-              */}
+              {/* the whole row is the target, not just the id token at its left */}
               <Link
                 href={`/compose?scenario=${encodeURIComponent(scenario.id)}`}
                 className={cn("block px-4 py-3", ROW_LINK)}

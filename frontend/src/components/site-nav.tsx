@@ -17,13 +17,9 @@ const links = [
  * The site nav, split out of the layout because the active item needs the pathname and the
  * layout has to stay a server component to export metadata.
  *
- * Active is carried by ink weight and a rule under the label, drawn with a pseudo element so
- * it spans the word exactly and has square ends. It used to be `border-b-2` on a `rounded-sm`
- * box pulled up with `-mb-px`, which paints a stubby rounded bar floating below the text and
- * reads as an artifact rather than an underline.
- *
- * Hover uses the same rule at lower strength instead of only lifting the ink, so an inactive
- * item answers the pointer in the same shape the active one uses.
+ * Active is ink weight plus a rule under the label, drawn with a pseudo element so it spans
+ * the word exactly and keeps square ends. Hover draws the same rule at lower strength, so an
+ * inactive item answers the pointer in the shape the active one uses.
  */
 const SiteNav: FC = () => {
   const pathname = usePathname();

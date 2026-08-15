@@ -19,10 +19,9 @@ const MARK = 26;
 /**
  * One swimlane per transaction, operations as marks on a shared step axis.
  *
- * Hand written SVG rather than an ECharts custom series. A custom series here would be a
- * coordinate transform plus six hand drawn mark states, which is the same work with a
- * chart library's lifecycle on top and a canvas fallback that jsdom cannot read. Nothing
- * here turns data into a scale: the x position is the step index.
+ * Hand written SVG rather than an ECharts custom series, which would be the same six mark
+ * states plus a chart lifecycle on top. Nothing here turns data into a scale: x is the step
+ * index.
  *
  * The marks are `g role="button"` and keyboard operable. A real `button` cannot be a child
  * of `svg`, which is why useSemanticElements is turned off for this file in biome.json.

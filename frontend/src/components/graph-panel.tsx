@@ -53,9 +53,8 @@ interface Drawn {
 const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
   const [hovered, setHovered] = useState<number | null>(null);
   const [pressed, setPressed] = useState<number | null>(null);
-  // focus is tracked separately from hover. aliasing the two, which both svg panels used to
-  // do, means a keyboard user and a mouse user cannot be told apart on screen, and the
-  // global `svg [role=button]:focus-visible { outline: none }` left nothing in its place
+  // separate from hover, not an alias of it: aliasing makes a keyboard user and a mouse
+  // user look identical, and the global outline suppression leaves nothing in its place
   const [focused, setFocused] = useState<number | null>(null);
 
   const { nodes, edges, width, height } = useMemo(() => {
@@ -285,12 +284,9 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
               }
             }}
           >
-            {/*
-              Focus sits furthest out, in a hue no transaction owns, so it reads on a node
-              that is already selected and already haloed. The app suppresses the browser's
-              own outline on svg buttons because it draws a hard rectangle on the bounding
-              box; this replaces it rather than leaving keyboard users with nothing.
-            */}
+            {/* furthest out, in a hue no transaction owns, so it reads on a node that is
+                already selected and haloed. this is what stands in for the browser outline
+                the app suppresses on svg buttons */}
             {focused === node.txn && (
               <rect
                 x={node.x - NODE_W / 2 - 8}
@@ -343,12 +339,7 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
               fill={txnColor(node.txn)}
               fillOpacity={node.aborted ? 0.45 : 1}
               stroke={txnColor(node.txn)}
-              /*
-                One channel, one direction. This used to press to 3px at 0.55 against a
-                hover of 7px at 0.3, so pressing made the ring thinner and darker at once
-                and read as a different idea rather than more of the same one. Now the halo
-                only grows: rest 0, hover 6, press 9, each a step up in weight.
-              */
+              // one channel, one direction: the halo only grows. 0, 6, 9
               strokeWidth={pressed === node.txn ? 9 : hovered === node.txn ? 6 : 0}
               strokeOpacity={pressed === node.txn ? 0.45 : hovered === node.txn ? 0.28 : 0}
               paintOrder="stroke"

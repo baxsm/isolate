@@ -6,16 +6,11 @@ interface FigureCardProps {
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
-  /**
-   * Drops the body padding so a divided list can reach the card's own edges. Without it a
-   * full-row hover stops 16px short on every side and reads as a floating band.
-   */
+  /** Drops the body padding so a divided list reaches the card's edges. Without it a
+   * full-row hover stops 16px short and reads as a floating band. */
   flush?: boolean;
-  /**
-   * A surface that holds its own `Pane` headings rather than one card title. The workbench
-   * is this: one border around several panes, divided by rules. Without it those three
-   * places wrote the border and radius inline, which is what this component exists to stop.
-   */
+  /** A surface holding its own `Pane` headings instead of one card title. The workbench is
+   * this: one border around several panes. */
   bare?: boolean;
   ref?: React.Ref<HTMLElement>;
   tabIndex?: number;

@@ -33,15 +33,11 @@ const ENGINES: { value: EngineProfile; label: string; hint: string }[] = [
 ];
 
 /**
- * Every control that acts on the whole run, in one strip.
+ * Every control that acts on the whole run, in one strip, so there is one place to look
+ * rather than three panel headers each labelling things their own way.
  *
- * These used to be spread across three card headers, so a reader looking for "where do I
- * change the level" had to find which panel happened to own it, and each header invented its
- * own labelling. One toolbar means one place to look and one alignment to hold.
- *
- * Settings sit left and the transport sits right, because settings define the run and the
- * transport moves through it. That order does not change when a schedule has three
- * transactions instead of two, so the transport does not move when the data does.
+ * Settings sit left and the transport right, and that order holds whether a schedule has two
+ * transactions or three, so the transport does not move when the data does.
  */
 const WorkbenchToolbar: FC<WorkbenchToolbarProps> = ({
   engine,

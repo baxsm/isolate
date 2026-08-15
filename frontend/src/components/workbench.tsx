@@ -111,11 +111,9 @@ const Workbench: FC<WorkbenchProps> = ({
 
   return (
     /*
-      One bordered surface for the whole workbench, divided by rules. It used to be six
-      separate cards, several of them holding bordered strips of bordered controls, and
-      nothing in that said which panel mattered. The schedule sits at the top with the
-      toolbar because it is what the reader is building; the rest is what the engine says
-      back about it.
+      One bordered surface, divided by rules rather than by nested cards. The schedule sits
+      at the top with the toolbar because it is what the reader builds; everything below is
+      what the engine says back about it.
     */
     <FigureCard bare ref={rigRef} tabIndex={-1}>
       <div className="border-[var(--color-line)] border-b p-4">

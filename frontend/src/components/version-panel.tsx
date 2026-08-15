@@ -110,9 +110,7 @@ const VersionPanel: FC<VersionPanelProps> = ({ step, viewer, selected, onSelectT
           version,
           // the row this transaction actually reads: live, and carrying the value its
           // snapshot resolves to
-          visible: watching
-            ? seen !== undefined && seen !== null && seen === version.value
-            : !dead,
+          visible: watching ? seen !== undefined && seen !== null && seen === version.value : !dead,
           dead,
           unobserved: !watching,
         });

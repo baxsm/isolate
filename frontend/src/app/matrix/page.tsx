@@ -154,12 +154,7 @@ export default async function MatrixPage() {
                   </td>
                   {row.cells.map((cell) => (
                     <td key={cell.anomaly} className="p-0">
-                      {/*
-                            The whole cell is the target. This used to be a text link with
-                            `hover:underline` and nothing else: no focus ring, no press, and
-                            a hit area the width of the word inside a much wider cell, 70
-                            times over.
-                          */}
+                      {/* the whole cell is the target, not the word inside it */}
                       <Link
                         href={cellHref(cell.scenario_id, row.engine, row.label)}
                         aria-label={`${cell.anomaly} at ${row.engine} ${row.label}: ${

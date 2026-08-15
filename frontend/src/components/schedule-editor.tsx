@@ -112,14 +112,9 @@ const ScheduleEditor: FC<ScheduleEditorProps> = ({ operations, onChange }) => {
       </ol>
 
       {/*
-        The new-operation row. It was a tinted box holding boxed controls with three
-        different label styles; now every control is a `Field` on one baseline and the row
-        sits on the pane directly.
-
         Key and value keep their slots when the kind does not use them, disabled rather than
-        removed: switching read to commit used to delete two fields and pull `Add` left under
-        the pointer. It is a fixed grid rather than a wrapping row for the same reason -
-        measured at the 320px rail, 384px of controls wrapped onto three lines.
+        removed, so `Add` never slides under the pointer. A fixed grid rather than a wrapping
+        row for the same reason: at the 320px rail, 384px of controls wrap onto three lines.
       */}
       <div className="mt-3 grid grid-cols-[auto_1fr] items-end gap-2">
         <TxnSelect
