@@ -4,6 +4,7 @@ import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from "lucide-rea
 import type { FC } from "react";
 import { useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { FOCUS } from "@/lib/interaction";
 import { cn } from "@/lib/utils";
 
 interface StepTransportProps {
@@ -87,15 +88,29 @@ const StepTransport: FC<StepTransportProps> = ({
         </Button>
       </div>
 
-      <input
-        type="range"
-        min={0}
-        max={last}
-        value={index}
-        onChange={(event) => onChange(Number(event.target.value))}
-        aria-label="Step"
-        className="h-1 min-w-24 flex-1 cursor-pointer accent-[var(--color-t1)]"
-      />
+      {/*
+        The track is 4px but the control is not. A bare `h-1` range measured 577x4, which is
+        a 4px-tall drag target, and it was also the widest line on the screen. The wrapper
+        gives it a 24px hit area while the track stays thin, and `max-w` stops a secondary
+        control from being the longest horizontal rule in the panel.
+      */}
+      <span className="flex min-w-24 max-w-64 flex-1 items-center py-2.5">
+        <input
+          type="range"
+          min={0}
+          max={last}
+          value={index}
+          onChange={(event) => onChange(Number(event.target.value))}
+          aria-label="Step"
+          className={cn(
+            "h-1 w-full cursor-pointer appearance-none rounded-full bg-[var(--color-line)] accent-[var(--color-t1)]",
+            "[&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--color-t1)]",
+            "[&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-115 [&::-webkit-slider-thumb]:active:scale-95",
+            "[&::-moz-range-thumb]:size-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[var(--color-t1)]",
+            FOCUS,
+          )}
+        />
+      </span>
 
       <span className="tabular shrink-0 text-[var(--color-ink-soft)] text-xs">
         {count === 0 ? "0 / 0" : `${index + 1} / ${count}`}

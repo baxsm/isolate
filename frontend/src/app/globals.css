@@ -40,8 +40,18 @@
      3.78 and fails AA as body text, which is what it is used as here */
   --color-ink-faint: #6b6f78;
 
-  --color-halo: #64172b;
+  /* the ring on a node or edge that sits in a cycle. it was #64172b, L* 22.3, which is
+     dark enough to read as a black box drawn around the node rather than a warning: 2.30
+     against the iris fill it rings, so the ring and the node it marks barely separate.
+     this is L* 51.9, 4.29 on the card and distinct from --color-danger by dE 18 */
+  --color-halo: #df3478;
   --color-danger: #ce2c31;
+
+  /* focus sits outside the box while selection sits inside it, so the two read together on
+     one mark. it cannot be a transaction hue: violet against T1 measures 1.00 and vanishes
+     into the node it is focusing. this clears 3:1 against the card and all three fills, the
+     worst being 3.05 on T1. it flips in dark, where white would fail on amber at 1.58 */
+  --color-focus: #1c2024;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -105,6 +115,15 @@
   A dark halo is invisible on a dark ground, which is why that one token inverts and the
   transaction tokens do not.
 */
+/*
+  The dark palette. Fills hold; the ground, the text ramp, the halo and the focus ring flip.
+  A dark halo is invisible on a dark ground, which is why those tokens invert and the
+  transaction tokens do not.
+
+  Written as one declaration list behind two selectors. It used to be two verbatim copies,
+  one for the OS preference and one for the explicit attribute, so every palette change had
+  to be made twice or the themes drifted apart.
+*/
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --surface-card: #18191b;
@@ -113,17 +132,15 @@
     --color-inset: #212225;
     --color-line: #2e3035;
     --color-line-strong: #43484e;
-
     --color-ink: #eeeef0;
     --color-ink-soft: #b0b4ba;
     --color-ink-faint: #8b8f98;
-
     --color-t1-text: #b1a9ff;
     --color-t2-text: #1fd8a4;
     --color-t3-text: #ffca16;
-
     --color-halo: #fed2e1;
     --color-danger: #ff9592;
+    --color-focus: #eeeef0;
   }
 }
 
@@ -134,21 +151,30 @@
   --color-inset: #212225;
   --color-line: #2e3035;
   --color-line-strong: #43484e;
-
   --color-ink: #eeeef0;
   --color-ink-soft: #b0b4ba;
   --color-ink-faint: #8b8f98;
-
   --color-t1-text: #b1a9ff;
   --color-t2-text: #1fd8a4;
   --color-t3-text: #ffca16;
-
   --color-halo: #fed2e1;
   --color-danger: #ff9592;
+  --color-focus: #eeeef0;
 }
 
 html {
   background: var(--color-ground);
+  /* without this the browser keeps painting scrollbars, and any control it draws itself,
+     in light while the page around them is dark */
+  color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {
@@ -177,9 +203,33 @@ body {
   }
 }
 
-:focus-visible {
-  outline: 2px solid var(--ring);
+/*
+  The focus fallback, and only a fallback. This used to be an unconditional
+  `:focus-visible` rule, which beat every component's own focus class on specificity ties
+  and painted in `--ring`, an iris mix, while the components asked for `--color-focus`. That
+  is why an inset ring on a table cell stayed outward and got clipped by the scroll
+  container, and why focus looked like a different idea in different places.
+
+  `:where()` drops the specificity to zero, so this covers anything that has no focus style
+  of its own and never fights one that does.
+*/
+:where(:focus-visible) {
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/*
+  A full-width row or table cell draws its focus ring inside its own box. An outward ring on
+  the matrix's last column measured 1523px against a scroll container ending at 1519 and was
+  clipped, so the cells at the edge were the ones a keyboard reader could not see.
+*/
+.focus-inset {
+  outline: none;
+}
+
+.focus-inset:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
 }
 
 /*

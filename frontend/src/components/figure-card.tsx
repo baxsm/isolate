@@ -6,13 +6,18 @@ interface FigureCardProps {
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
+  /**
+   * Drops the body padding so a divided list can reach the card's own edges. Without it a
+   * full-row hover stops 16px short on every side and reads as a floating band.
+   */
+  flush?: boolean;
 }
 
 /**
  * The only bordered figure container. One surface level, never nested, so the border and
  * radius classes are written here and nowhere else.
  */
-const FigureCard: FC<FigureCardProps> = ({ title, aside, children, className }) => {
+const FigureCard: FC<FigureCardProps> = ({ title, aside, children, className, flush }) => {
   return (
     <section
       className={cn(
@@ -28,7 +33,7 @@ const FigureCard: FC<FigureCardProps> = ({ title, aside, children, className }) 
           {aside && <div className="flex items-center gap-3">{aside}</div>}
         </header>
       )}
-      <div className="p-4">{children}</div>
+      <div className={flush ? "overflow-hidden rounded-b" : "p-4"}>{children}</div>
     </section>
   );
 };

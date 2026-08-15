@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
+import Field from "@/components/field";
 import FieldSelect from "@/components/field-select";
 import TxnBadge from "@/components/txn-badge";
 import TxnSelect from "@/components/txn-select";
@@ -110,43 +111,61 @@ const ScheduleEditor: FC<ScheduleEditorProps> = ({ operations, onChange }) => {
         ))}
       </ol>
 
-      {/* the inset surface, level 3 of 3. no border, a tint only, so the strip reads as
-          part of the card rather than a second card inside it */}
-      <div className="flex flex-wrap items-center gap-2 rounded bg-[var(--color-inset)] p-2">
-        <TxnSelect value={txn} onChange={setTxn} label="Transaction for the new operation" />
+      {/*
+        The new-operation row. It was a tinted box holding boxed controls with three
+        different label styles; now every control is a `Field` on one baseline and the row
+        sits on the pane directly.
+
+        Key and value keep their slots when the kind does not use them, disabled rather than
+        removed. Switching read to commit used to delete two fields and pull `Add` left
+        under the pointer, which is the layout moving because the data changed.
+      */}
+      {/*
+        A fixed grid, not a wrapping row. Measured at the 320px rail: 384px of controls in a
+        286px row, wrapping onto three lines and moving `Add` every time the kind changed.
+        Two rows of fixed tracks fit at every width the rail is ever given, and the controls
+        stay in the same place whatever operation is selected.
+      */}
+      <div className="mt-3 grid grid-cols-[auto_1fr] items-end gap-2">
+        <TxnSelect
+          value={txn}
+          onChange={setTxn}
+          label="Transaction for the new operation"
+          caption="txn"
+        />
         <FieldSelect
+          caption="operation"
           label="Kind of the new operation"
           value={kind}
           onChange={(next) => setKind(next as OpKind)}
           options={KINDS}
         />
-        {spec?.needsKey && (
-          <span className="flex items-center gap-1.5">
-            <span className="text-[var(--color-ink-soft)] text-xs">key</span>
+        <div className="col-span-2 flex items-end gap-2">
+          <Field label="key" className="flex-1" disabled={!spec?.needsKey}>
             <Input
-              className="tabular h-7 w-14 font-mono text-xs"
+              className="tabular h-7 w-full font-mono text-xs"
               aria-label="Key for the new operation"
               value={key}
               onChange={(event) => setKey(event.target.value)}
+              disabled={!spec?.needsKey}
             />
-          </span>
-        )}
-        {spec?.needsValue && (
-          <span className="flex items-center gap-1.5">
-            <span className="text-[var(--color-ink-soft)] text-xs">value</span>
+          </Field>
+          <Field label="value" className="flex-1" disabled={!spec?.needsValue}>
             <Input
-              className="tabular h-7 w-16 font-mono text-xs"
+              className="tabular h-7 w-full font-mono text-xs"
               aria-label="Value for the new operation"
               inputMode="numeric"
               value={value}
               onChange={(event) => setValue(event.target.value)}
+              disabled={!spec?.needsValue}
             />
-          </span>
-        )}
-        <Button variant="outline" size="sm" onClick={add}>
-          <Plus data-icon="inline-start" aria-hidden />
-          Add
-        </Button>
+          </Field>
+          {/* an action, so it is a button and never shares a shape with the pickers beside it */}
+          <Button variant="outline" size="sm" onClick={add} className="shrink-0">
+            <Plus data-icon="inline-start" aria-hidden />
+            Add
+          </Button>
+        </div>
       </div>
     </div>
   );

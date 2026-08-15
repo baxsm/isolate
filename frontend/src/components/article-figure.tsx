@@ -12,6 +12,8 @@ interface ArticleFigureProps {
   engine?: EngineProfile;
   levelControl?: boolean;
   engineControl?: boolean;
+  /** Panels this figure needs. Defaults to both; see the note in `workbench.tsx`. */
+  panels?: { versions?: boolean; graph?: boolean };
 }
 
 const INITIAL = { "1": 10, "2": 20 };
@@ -28,6 +30,7 @@ const ArticleFigure: FC<ArticleFigureProps> = ({
   engine = "postgres",
   levelControl = true,
   engineControl = false,
+  panels,
 }) => {
   const txns = [...new Set(operations.map((op) => op.txn))];
   const [isolation, setIsolation] = useState<Record<number, IsolationLevel>>(
@@ -52,6 +55,7 @@ const ArticleFigure: FC<ArticleFigureProps> = ({
         initial={INITIAL}
         onIsolationChange={levelControl ? setAll : undefined}
         onEngineChange={engineControl ? setProfile : undefined}
+        panels={panels}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
+import SiteNav from "@/components/site-nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,17 +9,18 @@ export const metadata: Metadata = {
     "Compose two concurrent transactions, step through them, and watch the anomaly your isolation level allows.",
 };
 
-const links = [
-  { href: "/", label: "Article" },
-  { href: "/compose", label: "Compose" },
-  { href: "/scenarios", label: "Scenarios" },
-  { href: "/matrix", label: "Matrix" },
-];
-
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    // light is the design target, so it is set rather than left to the OS preference
-    <html lang="en" data-theme="light">
+    /*
+      No `data-theme` here on purpose. Pinning it to "light" made the whole dark palette
+      unreachable: `:root:not([data-theme="light"])` can never match, so 14 measured tokens,
+      a second declaration block and the README's dark-mode paragraph all described
+      something the running app could not show.
+
+      Absent, the OS preference drives it through the media query, and the attribute stays
+      available for anything that wants to force a theme.
+    */
+    <html lang="en">
       <body>
         <a
           href="#main"
@@ -28,26 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         <header className="border-[var(--color-line)] border-b">
-          <nav
-            aria-label="Main"
-            className="mx-auto flex max-w-[1200px] items-center gap-6 px-6 py-3"
-          >
-            <Link href="/" className="font-medium font-mono text-[var(--color-ink)] text-sm">
-              isolate
-            </Link>
-            <ul className="flex items-center gap-4">
-              {links.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-[var(--color-ink-soft)] text-sm transition-colors hover:text-[var(--color-ink)]"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <SiteNav />
         </header>
         <main id="main">{children}</main>
       </body>

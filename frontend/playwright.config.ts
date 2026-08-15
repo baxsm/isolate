@@ -15,14 +15,19 @@ export default defineConfig({
     toHaveScreenshot: { threshold: 0.1, maxDiffPixelRatio: 0.01 },
   },
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    // dev by default, overridable so the same suite can be pointed at a production build.
+    // dev mode hides path alias mismatches, missing env prefixes and hydration mismatches
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
-    command: "npm run dev -- --port 3000",
-    url: "http://127.0.0.1:3000",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  // nothing to start when the suite is pointed at a server that is already running
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: "npm run dev -- --port 3000",
+        url: "http://127.0.0.1:3000",
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
 });

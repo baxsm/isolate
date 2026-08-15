@@ -167,6 +167,103 @@ test.describe("editor", () => {
   });
 });
 
+test.describe("one state language", () => {
+  /*
+    Every other check measures one element against a rule. None asks whether two components
+    agree, and that disagreement is what reads as incoherent. Measured before this existed:
+    graph selection drew 2px at 0.45 while the timeline drew 4px at 0.25, and version rows
+    had no hover, press or focus at all while both files claimed to share one language.
+  */
+  test("a row and a node answer hover and press the same way", async ({ page }) => {
+    await page.goto("/compose?scenario=G2-item");
+    await settle(page);
+    await page.getByRole("button", { name: "Last step" }).first().click();
+    await page.waitForTimeout(500);
+
+    const row = page.locator("[data-testid='version-row'][tabindex='0']").first();
+    await expect(row).toHaveCount(1);
+
+    const readRow = () =>
+      row.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return { translate: s.translate, background: s.backgroundColor };
+      });
+
+    const rest = await readRow();
+    await row.hover();
+    await page.waitForTimeout(200);
+    const hover = await readRow();
+    // hover is elevation, upward, and it is the only state that moves the row up
+    expect(hover.translate).not.toBe(rest.translate);
+    expect(hover.translate).toContain("-1px");
+
+    await page.mouse.down();
+    await page.waitForTimeout(150);
+    const press = await readRow();
+    await page.mouse.up();
+    // press collapses the lift and darkens the ground, so it is never just a lighter hover
+    expect(press.translate).not.toBe(hover.translate);
+    expect(press.background).not.toBe(hover.background);
+  });
+
+  test("selection rings inside the box and focus rings outside it", async ({ page }) => {
+    await page.goto("/compose?scenario=G2-item");
+    await settle(page);
+    await page.getByRole("button", { name: "Last step" }).first().click();
+    await page.waitForTimeout(500);
+
+    const selected = page.locator("[data-testid='version-row'][data-selected='true']").first();
+    await expect(selected).toHaveCount(1);
+    const shadow = await selected.evaluate((el) => getComputedStyle(el).boxShadow);
+    // inside, so a focus ring sitting outside can be read at the same time
+    expect(shadow).toContain("inset");
+
+    // reached with the keyboard, not `.focus()`. an api focus call does not satisfy
+    // `:focus-visible` on a pointer-focusable element, so the ring never applies and the
+    // app reads as broken when it is the measurement that is wrong
+    await selected.evaluate((el: HTMLElement) => el.focus());
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(200);
+    const focused = await selected.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        outline: s.outlineWidth,
+        style: s.outlineStyle,
+        shadow: s.boxShadow,
+        focusVisible: el.matches(":focus-visible"),
+      };
+    });
+    expect(focused.focusVisible).toBe(true);
+    expect(focused.style).not.toBe("none");
+    // both read together rather than one replacing the other
+    expect(focused.shadow).toContain("inset");
+  });
+});
+
+test.describe("the nav says which page this is", () => {
+  for (const route of ["/", "/compose", "/scenarios", "/matrix"]) {
+    test(`exactly one link is current on ${route}`, async ({ page }) => {
+      await page.goto(route);
+      await settle(page);
+      const links = page.locator("nav a[aria-current='page']");
+      await expect(links).toHaveCount(1);
+
+      // and it has to be visibly different, not only different to a screen reader
+      const weights = await page.evaluate(() => {
+        const all = [...document.querySelectorAll("nav a")];
+        const current = all.find((a) => a.getAttribute("aria-current") === "page");
+        const others = all.filter((a) => a !== current && a.textContent?.trim() !== "isolate");
+        return {
+          current: current ? getComputedStyle(current).fontWeight : null,
+          others: [...new Set(others.map((a) => getComputedStyle(a).fontWeight))],
+        };
+      });
+      expect(weights.others).not.toContain(weights.current);
+    });
+  }
+});
+
 test.describe("reduced motion", () => {
   test("the cycle dash still exists but does not animate", async ({ page }) => {
     // emulateMedia rather than the context option: the context option also disables
@@ -190,5 +287,110 @@ test.describe("reduced motion", () => {
     expect(state.play).toBe("paused");
     expect(state.name).toBe("cycle-dash");
     expect(state.dash).not.toBe("none");
+  });
+});
+
+test.describe("a panel is sized by what is in it", () => {
+  /*
+    dagre returns a rank-layout box whether or not anything is ranked, so one node came back
+    in 260x108 holding 64x40 of node. Measured on /compose: the graph card was 203px against
+    the version card's 201px, at 5,305px per element against 1,751 - the same size for a
+    third of the content. That is "everything is out of shape" as a number.
+  */
+  test("an empty graph fits its node instead of dagre's box", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/compose");
+    await settle(page);
+
+    const box = await page.evaluate(() => {
+      const graph = document.querySelector("[data-testid='graph']");
+      const node = document.querySelector("[data-testid^='node-'] rect");
+      if (!graph || !node) return null;
+      const g = graph.getBoundingClientRect();
+      const n = node.getBoundingClientRect();
+      return {
+        graphHeight: g.height,
+        nodeHeight: n.height,
+        slack: g.height - n.height,
+        fitsVertically: n.top >= g.top - 1 && n.bottom <= g.bottom + 1,
+      };
+    });
+
+    expect(box).not.toBeNull();
+    expect(box?.fitsVertically).toBe(true);
+    // the padding is 10px a side with no edges to leave room for. anything much over that
+    // is dagre's empty rank space coming back
+    expect(box?.slack ?? 999).toBeLessThanOrEqual(24);
+  });
+
+  test("a graph with edges still gets its room and clips nothing", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/compose?scenario=G2-item");
+    await settle(page);
+    await page.getByRole("button", { name: "Last step" }).first().click();
+    await page.waitForTimeout(600);
+
+    const info = await page.evaluate(() => {
+      const graph = document.querySelector("[data-testid='graph']");
+      const box = graph?.getBoundingClientRect();
+      if (!box) return null;
+      const clipped = [...document.querySelectorAll("[data-testid^='node-'] rect")].filter((r) => {
+        const b = r.getBoundingClientRect();
+        return b.top < box.top - 1 || b.bottom > box.bottom + 1 || b.right > box.right + 1;
+      }).length;
+      return {
+        height: box.height,
+        edges: document.querySelectorAll("[data-testid^='edge-']").length,
+        clipped,
+      };
+    });
+
+    expect(info?.edges ?? 0).toBeGreaterThan(0);
+    expect(info?.clipped).toBe(0);
+    // the floor still applies once there are edges and haloes to leave room for
+    expect(info?.height ?? 0).toBeGreaterThanOrEqual(110);
+  });
+});
+
+test.describe("a clipped panel says it is clipped", () => {
+  /*
+    At 375 the schedule is 336px of content in a 293px box, so the last mark sat 17px past
+    the card edge with nothing to say it was there. The fade is conditional, and this check
+    exists because the condition broke once already: observing the svg at effect time
+    observed nothing, because an empty schedule renders a `p` and the svg is not mounted yet.
+  */
+  test("the timeline fades its edge only when it really overflows", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/compose");
+    await settle(page);
+    // the cue is set by a ResizeObserver callback, which lands a frame or two after the
+    // schedule renders. waiting for the marker rather than for a fixed delay stops this
+    // reading a real cue as a missing one on a slow render
+    await page.locator("[data-overflowing]").waitFor({ state: "attached", timeout: 5000 });
+
+    const narrow = await page.evaluate(() => {
+      const wrap = document.querySelector("[data-testid='timeline']")?.parentElement;
+      if (!wrap) return null;
+      return {
+        overflows: wrap.scrollWidth > wrap.clientWidth + 1,
+        faded: getComputedStyle(wrap).maskImage !== "none",
+      };
+    });
+    expect(narrow?.overflows).toBe(true);
+    expect(narrow?.faded).toBe(true);
+
+    // and it is gone once there is room, so a schedule that fits is not faded for nothing
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(400);
+    const wide = await page.evaluate(() => {
+      const wrap = document.querySelector("[data-testid='timeline']")?.parentElement;
+      if (!wrap) return null;
+      return {
+        overflows: wrap.scrollWidth > wrap.clientWidth + 1,
+        faded: getComputedStyle(wrap).maskImage !== "none",
+      };
+    });
+    expect(wide?.overflows).toBe(false);
+    expect(wide?.faded).toBe(false);
   });
 });

@@ -1,9 +1,9 @@
 "use client";
 
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Step } from "@/lib/types";
-import { opToken, txnColor, txnInkColor } from "@/lib/utils";
+import { opLetter, opToken, txnColor, txnInkColor } from "@/lib/utils";
 
 interface TimelinePanelProps {
   steps: Step[];
@@ -32,6 +32,11 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
   // an svg group in this app: the group receives mousemove and never mouseenter, so the
   // rule matches while the computed stroke stays at rest
   const [active, setActive] = useState<number | null>(null);
+  // focus is its own state, not an alias of hover. aliasing them made a keyboard user and a
+  // mouse user look identical, and the app suppresses the browser outline on svg buttons
+  const [focused, setFocused] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [overflowing, setOverflowing] = useState(false);
 
   const txns = useMemo(() => {
     const seen = new Set<number>();
@@ -59,12 +64,56 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
   // of the mark looks sliced off
   const PAD = 12;
 
+  /*
+    Measured from the container on every resize and every render, rather than from a
+    ResizeObserver on the svg.
+
+    Both earlier versions were wrong in opposite directions, and both were caught by the
+    guard rather than by reading the code. Observing the svg alone never fired when the
+    window widened, because the svg keeps its intrinsic width and only the box around it
+    grows: the fade stayed on with 774px of room for 774px of schedule, measured. Measuring
+    inside the callback ref instead read the box before layout and left the fade off on a
+    schedule that did overflow.
+
+    `scrollWidth > clientWidth` on the container answers both cases, and a layout effect
+    runs it after every render, which is exactly when either side can have changed.
+  */
+  useLayoutEffect(() => {
+    const measure = () => {
+      const box = scrollRef.current;
+      if (box) setOverflowing(box.scrollWidth > box.clientWidth + 1);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  });
+
   if (steps.length === 0) {
     return <p className="text-[var(--color-ink-soft)] text-sm">No operations yet.</p>;
   }
 
   return (
-    <div className="overflow-x-auto">
+    /*
+      At 375 the schedule is 336px of content in a 293px box, so the last mark sat 17px
+      past the card edge with nothing to say it was there. The mask fades the overflowing
+      edge, which is what tells a reader to scroll, and is only applied while the content
+      really is wider than the box: measured, not assumed, or a schedule that fits gets
+      its last mark faded for nothing.
+    */
+    <div
+      ref={scrollRef}
+      className="overflow-x-auto [scrollbar-width:thin]"
+      data-overflowing={overflowing ? "" : undefined}
+      style={
+        overflowing
+          ? {
+              maskImage: "linear-gradient(to right, #000 calc(100% - 24px), transparent 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to right, #000 calc(100% - 24px), transparent 100%)",
+            }
+          : undefined
+      }
+    >
       <svg
         width={width + PAD * 2}
         height={height + PAD * 2}
@@ -135,8 +184,16 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                       onClick={() => onScrub(step.index)}
                       onPointerEnter={() => setActive(step.index)}
                       onPointerLeave={() => setActive((now) => (now === step.index ? null : now))}
-                      onFocus={() => setActive(step.index)}
-                      onBlur={() => setActive((now) => (now === step.index ? null : now))}
+                      onFocus={(event) => {
+                        setActive(step.index);
+                        // the label still appears on pointer focus; only the ring is
+                        // reserved for a keyboard reader
+                        if (event.currentTarget.matches(":focus-visible")) setFocused(step.index);
+                      }}
+                      onBlur={() => {
+                        setActive((now) => (now === step.index ? null : now));
+                        setFocused((now) => (now === step.index ? null : now));
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
@@ -153,6 +210,34 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                         it. an outline sized to a 26px mark is nearly the mark, and beside
                         the current ring the two read as one confused shape.
                       */}
+                      {/*
+                        The hit area, not the mark. The drawn mark is 20x18 because that is
+                        the density the schedule needs, and 20x18 is well under a usable
+                        target: it is smaller than a fingertip and fiddly with a mouse. This
+                        transparent rect spans the full lane pitch, so the target is 26x30
+                        while the drawing stays exactly as designed.
+                      */}
+                      <rect
+                        x={x - 3}
+                        y={y - (LANE_GAP - 6) / 2 - 3}
+                        width={MARK}
+                        height={LANE_HEIGHT + LANE_GAP}
+                        fill="transparent"
+                      />
+                      {/* outside the current ring, in a hue no transaction owns, so a
+                          focused mark that is also the current step still reads as both */}
+                      {focused === step.index && (
+                        <rect
+                          x={x - 6}
+                          y={y - 6}
+                          width={MARK + 6}
+                          height={LANE_HEIGHT + 12}
+                          rx="7"
+                          fill="none"
+                          stroke="var(--color-focus)"
+                          strokeWidth="2"
+                        />
+                      )}
                       {current && (
                         <rect
                           x={x - 3}
@@ -162,7 +247,12 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                           rx="5"
                           fill="none"
                           stroke={txnColor(txn)}
-                          strokeWidth="1.5"
+                          // a hard 1.5px ring in the same hue, 3px off a mark already
+                          // filled with that hue, read as a black box drawn around the
+                          // mark rather than as "this is the current step". a soft halo
+                          // is the language hover, focus and the graph nodes already use
+                          strokeWidth="4"
+                          strokeOpacity="0.25"
                         />
                       )}
                       <rect
@@ -173,7 +263,7 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                         rx="3"
                         fill={past || current ? txnColor(txn) : "var(--color-card)"}
                         stroke={txnColor(txn)}
-                        strokeWidth={current ? 2 : 1}
+                        strokeWidth={1}
                         strokeDasharray={future ? "3 2" : undefined}
                         className="[transition:y_100ms_ease-out]"
                       />
@@ -197,7 +287,7 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                         fontWeight={current ? 600 : 400}
                         fill={past || current ? txnInkColor(txn) : "var(--color-ink-soft)"}
                       >
-                        {shortLabel(step.op.kind)}
+                        {opLetter(step.op.kind)}
                       </text>
                       {failed && (
                         <line
@@ -242,29 +332,5 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
     </div>
   );
 };
-
-function shortLabel(kind: string): string {
-  switch (kind) {
-    case "begin":
-      return "B";
-    case "commit":
-      return "C";
-    case "abort":
-      return "A";
-    case "read":
-    case "predicate_read":
-      return "R";
-    case "write":
-    case "predicate_write":
-      return "W";
-    case "insert":
-      return "I";
-    case "delete":
-    case "predicate_delete":
-      return "D";
-    default:
-      return "?";
-  }
-}
 
 export default TimelinePanel;

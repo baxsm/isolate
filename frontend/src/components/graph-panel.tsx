@@ -50,6 +50,10 @@ interface Drawn {
 const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
   const [hovered, setHovered] = useState<number | null>(null);
   const [pressed, setPressed] = useState<number | null>(null);
+  // focus is tracked separately from hover. aliasing the two, which both svg panels used to
+  // do, means a keyboard user and a mouse user cannot be told apart on screen, and the
+  // global `svg [role=button]:focus-visible { outline: none }` left nothing in its place
+  const [focused, setFocused] = useState<number | null>(null);
 
   const { nodes, edges, width, height } = useMemo(() => {
     if (!step) return { nodes: [] as Placed[], edges: [] as Drawn[], width: 0, height: 0 };
@@ -135,7 +139,9 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
       nodes: placed,
       edges: drawn,
       width: Math.max(info.width ?? 0, 240),
-      height: Math.max(info.height ?? 0, 120),
+      // dagre's own box, not a floor. forcing 120 here gave a single node a 188px field of
+      // empty card to sit in, with "no dependencies yet" stranded under it
+      height: info.height ?? 0,
     };
   }, [step]);
 
@@ -143,15 +149,42 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
     return <p className="text-[var(--color-ink-soft)] text-sm">No transactions yet.</p>;
   }
 
-  // give the bowed edges and the cycle halo room outside the layout box
-  const pad = 34;
-  const viewBox = `${-pad} ${-pad} ${width + pad * 2} ${height + pad * 2}`;
+  // room outside the layout box for the bowed edges and the cycle halo. with no edges
+  // there is neither, and the full padding left one node in a 188px field of empty card
+  const hasEdges = edges.length > 0;
+  const pad = hasEdges ? 34 : 10;
+
+  /*
+    dagre sizes its box for a rank layout whether or not anything is ranked, so a single
+    node came back in a 260x108 box holding 64x40 of node: measured, 68px of it empty. With
+    no edges there is nothing between nodes to leave room for, so the box is the nodes'
+    own bounds instead of dagre's.
+  */
+  const bounds = hasEdges
+    ? { x: 0, y: 0, w: width, h: height }
+    : (() => {
+        const xs = nodes.map((n) => n.x);
+        const ys = nodes.map((n) => n.y);
+        const left = Math.min(...xs) - NODE_W / 2;
+        const top = Math.min(...ys) - NODE_H / 2;
+        return {
+          x: left,
+          y: top,
+          w: Math.max(...xs) + NODE_W / 2 - left,
+          h: Math.max(...ys) + NODE_H / 2 - top,
+        };
+      })();
+
+  const viewBox = `${bounds.x - pad} ${bounds.y - pad} ${bounds.w + pad * 2} ${bounds.h + pad * 2}`;
+
+  // the floor only earns its space once there are edges to give room to
+  const drawnHeight = Math.min(
+    MAX_HEIGHT,
+    hasEdges ? Math.max(MIN_HEIGHT, height + pad * 2) : bounds.h + pad * 2,
+  );
 
   return (
-    <div
-      style={{ height: Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height + pad * 2)) }}
-      data-testid="graph"
-    >
+    <div style={{ height: drawnHeight }} data-testid="graph">
       <svg
         viewBox={viewBox}
         width="100%"
@@ -236,8 +269,12 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
             }}
             onPointerDown={() => setPressed(node.txn)}
             onPointerUp={() => setPressed(null)}
-            onFocus={() => setHovered(node.txn)}
-            onBlur={() => setHovered((current) => (current === node.txn ? null : current))}
+            onFocus={(event) => {
+              // only a keyboard focus draws the ring. a pointer press focuses too, and
+              // ringing then puts a focus ring on every node the reader merely clicks
+              if (event.currentTarget.matches(":focus-visible")) setFocused(node.txn);
+            }}
+            onBlur={() => setFocused((current) => (current === node.txn ? null : current))}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
@@ -245,6 +282,24 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
               }
             }}
           >
+            {/*
+              Focus sits furthest out, in a hue no transaction owns, so it reads on a node
+              that is already selected and already haloed. The app suppresses the browser's
+              own outline on svg buttons because it draws a hard rectangle on the bounding
+              box; this replaces it rather than leaving keyboard users with nothing.
+            */}
+            {focused === node.txn && (
+              <rect
+                x={node.x - NODE_W / 2 - 8}
+                y={node.y - NODE_H / 2 - 8}
+                width={NODE_W + 16}
+                height={NODE_H + 16}
+                rx="10"
+                fill="none"
+                stroke="var(--color-focus)"
+                strokeWidth="2"
+              />
+            )}
             {/* selection is an offset ring in the node's own hue, so it reads as "this
                 one" without competing with the cycle halo sitting right beside it */}
             {selected === node.txn && (
@@ -285,10 +340,14 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
               fill={txnColor(node.txn)}
               fillOpacity={node.aborted ? 0.45 : 1}
               stroke={txnColor(node.txn)}
-              // press sits tighter and darker than hover, so the node moves under the
-              // finger rather than only lighting up
-              strokeWidth={pressed === node.txn ? 3 : hovered === node.txn ? 7 : 0}
-              strokeOpacity={pressed === node.txn ? 0.55 : hovered === node.txn ? 0.3 : 0}
+              /*
+                One channel, one direction. This used to press to 3px at 0.55 against a
+                hover of 7px at 0.3, so pressing made the ring thinner and darker at once
+                and read as a different idea rather than more of the same one. Now the halo
+                only grows: rest 0, hover 6, press 9, each a step up in weight.
+              */
+              strokeWidth={pressed === node.txn ? 9 : hovered === node.txn ? 6 : 0}
+              strokeOpacity={pressed === node.txn ? 0.45 : hovered === node.txn ? 0.28 : 0}
               paintOrder="stroke"
             />
             <text

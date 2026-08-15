@@ -9,6 +9,7 @@ import {
   READ_SKEW,
   WRITE_SKEW,
 } from "@/lib/article-schedules";
+import { PROSE_LINK } from "@/lib/interaction";
 
 export default function HomePage() {
   return (
@@ -35,7 +36,9 @@ export default function HomePage() {
           <OpToken kind="read" txn={1} operationKey="1" /> goes back to the old value, because the
           snapshot was taken when the transaction began.
         </p>
-        <ArticleFigure operations={FIRST_TOUCH} level="read_committed" />
+        {/* this section is about what a reader sees, and there are no edges yet. the graph
+            card here held one node and an empty-state sentence */}
+        <ArticleFigure operations={FIRST_TOUCH} level="read_committed" panels={{ graph: false }} />
       </Section>
 
       <Section title="What a snapshot is">
@@ -51,7 +54,8 @@ export default function HomePage() {
           reach it, which is what makes a reader and a writer able to run at once without either
           waiting.
         </p>
-        <ArticleFigure operations={DIRTY_READ} level="read_uncommitted" />
+        {/* the paragraph is xmin/xmax visibility, which is exactly what the chain shows */}
+        <ArticleFigure operations={DIRTY_READ} level="read_uncommitted" panels={{ graph: false }} />
         <p>
           Above, <TxnBadge txn={2} variant="text" /> reads a value{" "}
           <TxnBadge txn={1} variant="text" /> never committed. Read uncommitted allows it and every
@@ -119,15 +123,12 @@ export default function HomePage() {
         <ArticleFigure operations={LOST_UPDATE} level="repeatable_read" engineControl />
         <p>
           The{" "}
-          <Link href="/matrix" className="text-[var(--color-t1-text)] underline underline-offset-4">
+          <Link href="/matrix" className={PROSE_LINK}>
             matrix
           </Link>{" "}
           runs every scenario at every level and compares the result against the published table.
           The{" "}
-          <Link
-            href="/compose"
-            className="text-[var(--color-t1-text)] underline underline-offset-4"
-          >
+          <Link href="/compose" className={PROSE_LINK}>
             workbench
           </Link>{" "}
           lets you build a schedule of your own and reorder it.

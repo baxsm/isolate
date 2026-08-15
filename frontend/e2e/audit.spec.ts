@@ -198,60 +198,145 @@ for (const viewport of VIEWPORTS) {
         expect(blocking.map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`)).toEqual([]);
       });
 
-      test("text meets AA contrast, computed", async ({ page }) => {
-        const failures = await page.evaluate(() => {
-          const out: { text: string; fg: string; bg: string; size: number; bold: boolean }[] = [];
-          const backdrop = (el: Element): string => {
-            let node: Element | null = el;
-            while (node) {
-              const bg = getComputedStyle(node).backgroundColor;
-              if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") return bg;
-              node = node.parentElement;
+      /*
+        Both themes, not just the one that renders by default. Dark was unreachable in the
+        app until `layout.tsx` stopped pinning `data-theme="light"`, so every contrast
+        number ever recorded for this project was a light number and the dark palette's 14
+        tokens had never been measured in a browser at all.
+      */
+      for (const theme of ["light", "dark"] as const) {
+        test(`text meets AA contrast in ${theme}, computed`, async ({ page }) => {
+          await page.emulateMedia({ colorScheme: theme });
+          await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+          await page.waitForTimeout(200);
+          const failures = await page.evaluate(() => {
+            const out: { text: string; fg: string; bg: string; size: number; bold: boolean }[] = [];
+            const backdrop = (el: Element): string => {
+              let node: Element | null = el;
+              while (node) {
+                const bg = getComputedStyle(node).backgroundColor;
+                if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") return bg;
+                node = node.parentElement;
+              }
+              return getComputedStyle(document.body).backgroundColor;
+            };
+            for (const el of document.querySelectorAll("main *")) {
+              const text = el.textContent?.trim() ?? "";
+              if (!text) continue;
+              const own = [...el.childNodes].some(
+                (n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim(),
+              );
+              if (!own) continue;
+              const rect = el.getBoundingClientRect();
+              if (rect.width === 0 || rect.height === 0) continue;
+              const s = getComputedStyle(el);
+              if (s.visibility === "hidden" || s.opacity === "0") continue;
+              out.push({
+                text: text.slice(0, 30),
+                fg: s.color,
+                bg: backdrop(el),
+                size: Number.parseFloat(s.fontSize),
+                bold: Number(s.fontWeight) >= 700,
+              });
             }
-            return getComputedStyle(document.body).backgroundColor;
-          };
-          for (const el of document.querySelectorAll("main *")) {
-            const text = el.textContent?.trim() ?? "";
-            if (!text) continue;
-            const own = [...el.childNodes].some(
-              (n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim(),
-            );
-            if (!own) continue;
-            const rect = el.getBoundingClientRect();
-            if (rect.width === 0 || rect.height === 0) continue;
-            const s = getComputedStyle(el);
-            if (s.visibility === "hidden" || s.opacity === "0") continue;
-            out.push({
-              text: text.slice(0, 30),
-              fg: s.color,
-              bg: backdrop(el),
-              size: Number.parseFloat(s.fontSize),
-              bold: Number(s.fontWeight) >= 700,
-            });
-          }
-          return out;
-        });
+            return out;
+          });
 
-        const bad: string[] = [];
-        for (const item of failures) {
-          // colorjs, never a regex. getComputedStyle serialises per property and a regex
-          // on oklch(0.6 0.2 250) yields numbers that are garbage
-          let contrast: number;
-          try {
-            contrast = Math.abs(new Color(item.fg).contrast(new Color(item.bg), "WCAG21"));
-          } catch {
-            continue;
+          const bad: string[] = [];
+          for (const item of failures) {
+            // colorjs, never a regex. getComputedStyle serialises per property and a regex
+            // on oklch(0.6 0.2 250) yields numbers that are garbage
+            let contrast: number;
+            try {
+              contrast = Math.abs(new Color(item.fg).contrast(new Color(item.bg), "WCAG21"));
+            } catch {
+              continue;
+            }
+            const large = item.size >= 24 || (item.size >= 18.66 && item.bold);
+            const needed = large ? 3 : 4.5;
+            if (contrast < needed) {
+              bad.push(
+                `"${item.text}" ${contrast.toFixed(2)}:1 needs ${needed} (${item.fg} on ${item.bg})`,
+              );
+            }
           }
-          const large = item.size >= 24 || (item.size >= 18.66 && item.bold);
-          const needed = large ? 3 : 4.5;
-          if (contrast < needed) {
-            bad.push(
-              `"${item.text}" ${contrast.toFixed(2)}:1 needs ${needed} (${item.fg} on ${item.bg})`,
-            );
-          }
-        }
-        expect(bad).toEqual([]);
-      });
+          expect(bad).toEqual([]);
+        });
+      }
     });
   }
 }
+
+/*
+  Every check above measures the page at rest, with nothing open. None of them opens a
+  dropdown, so no popup was ever measured, and text sliced off inside an `overflow-x:
+  hidden` popup is invisible to all nine.
+
+  That is how a menu shipped whose hints were cut mid word: shadcn pins the popup to
+  `w-(--anchor-width)`, the trigger's width, and the engine trigger is 114px while its
+  longest hint needs 194px. "repeatable read is snapshot isolation" rendered as
+  "repeatable read is snapsh". The hint is the reason the menu exists.
+*/
+test.describe("open menus", () => {
+  for (const viewport of VIEWPORTS) {
+    test(`no select menu clips its own text at ${viewport.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.goto("/compose");
+      await settle(page);
+      expect(await page.evaluate(() => window.innerWidth)).toBeLessThanOrEqual(viewport.width);
+
+      const triggers = page.locator('[data-slot="select-trigger"]');
+      const count = await triggers.count();
+      expect(count).toBeGreaterThan(0);
+
+      const clipped: string[] = [];
+      for (let i = 0; i < count; i++) {
+        const trigger = triggers.nth(i);
+        const label = (await trigger.getAttribute("aria-label")) ?? `trigger ${i}`;
+        await trigger.scrollIntoViewIfNeeded();
+        await trigger.click();
+        // a closed popup stays in the dom carrying the same slot, so match the open one
+        const popup = page.locator('[data-slot="select-content"][data-open]');
+        await popup.waitFor({ state: "visible" });
+        // the popup animates open, and a mid transition frame measures a smaller box
+        await page.waitForTimeout(300);
+
+        clipped.push(
+          ...(
+            await popup.evaluate((el) => {
+              const out: string[] = [];
+              const box = el.getBoundingClientRect();
+              if (el.scrollWidth > el.clientWidth) {
+                out.push(`popup scrolls: ${el.scrollWidth} content in ${el.clientWidth}`);
+              }
+              if (box.left < 0 || box.right > window.innerWidth + 1) {
+                out.push(`popup off screen: ${Math.round(box.left)}..${Math.round(box.right)}`);
+              }
+              // every run of text in the menu, against the popup's own content box
+              for (const node of el.querySelectorAll("span, p")) {
+                const text = node.textContent?.trim() ?? "";
+                if (!text) continue;
+                const owns = [...node.childNodes].some(
+                  (n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim(),
+                );
+                if (!owns) continue;
+                const rect = node.getBoundingClientRect();
+                if (rect.width === 0) continue;
+                if (rect.right > Math.ceil(box.right)) {
+                  out.push(
+                    `"${text.slice(0, 44)}" runs ${Math.round(rect.right - box.right)}px past`,
+                  );
+                }
+              }
+              return out;
+            })
+          ).map((issue) => `${label}: ${issue}`),
+        );
+
+        await page.keyboard.press("Escape");
+        await popup.waitFor({ state: "hidden" });
+      }
+      expect(clipped).toEqual([]);
+    });
+  }
+});

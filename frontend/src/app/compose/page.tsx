@@ -2,7 +2,7 @@
 
 import { Check, Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import FigureCard from "@/components/figure-card";
+import Pane from "@/components/pane";
 import ScheduleEditor from "@/components/schedule-editor";
 import SqlInput from "@/components/sql-input";
 import { Button } from "@/components/ui/button";
@@ -138,18 +138,31 @@ export default function ComposePage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-6">
-          <FigureCard
+        {/*
+          One surface for everything the reader types, divided by a rule. These were two
+          separate cards, each with its own bordered header, and the SQL one held a bordered
+          textarea and a bordered button inside that. Input on the left, what the engine says
+          back on the right.
+        */}
+        <div className="flex h-fit flex-col overflow-hidden rounded border border-[var(--color-line)] bg-[var(--color-card)]">
+          <Pane
+            className="p-4"
             title="Operations"
             // the timeline can hold more steps than this list: a write that blocks is
             // retried when the lock clears, and that retry is a step nobody typed. saying
             // so beats a reader counting eight rows against nine marks
-            aside={<span className="text-[var(--color-ink-soft)] text-xs">what you asked for</span>}
+            aside={
+              <span className="text-[var(--color-ink-faint)] text-xs">what you asked for</span>
+            }
           >
             <ScheduleEditor operations={operations} onChange={edit} />
-            {missing && <p className="mt-3 text-[var(--color-ink-soft)] text-xs">{missing}</p>}
-          </FigureCard>
-          <SqlInput onParsed={edit} />
+            {/* reserved, so adding an operation that completes a transaction does not move
+                the SQL pane below it */}
+            <p className="mt-3 min-h-4 text-[var(--color-ink-soft)] text-xs">{missing}</p>
+          </Pane>
+          <div className="border-[var(--color-line)] border-t p-4">
+            <SqlInput onParsed={edit} />
+          </div>
         </div>
 
         <Workbench

@@ -2,18 +2,17 @@
 
 import type { FC } from "react";
 import { useMemo, useRef, useState } from "react";
-import FieldSelect from "@/components/field-select";
-import FigureCard from "@/components/figure-card";
 import GraphPanel from "@/components/graph-panel";
-import StepTransport from "@/components/step-transport";
+import Pane from "@/components/pane";
 import TimelinePanel from "@/components/timeline-panel";
 import TxnBadge from "@/components/txn-badge";
 import TxnSelect from "@/components/txn-select";
 import { Button } from "@/components/ui/button";
 import VersionPanel from "@/components/version-panel";
+import WorkbenchToolbar from "@/components/workbench-toolbar";
 import type { EngineProfile, IsolationLevel, Operation, RunRequest } from "@/lib/types";
 import { useRun } from "@/lib/use-run";
-import { describeOp } from "@/lib/utils";
+import { cn, describeOp } from "@/lib/utils";
 
 interface WorkbenchProps {
   operations: Operation[];
@@ -22,21 +21,15 @@ interface WorkbenchProps {
   initial?: Record<string, number>;
   onIsolationChange?: (txn: number, level: IsolationLevel) => void;
   onEngineChange?: (engine: EngineProfile) => void;
+  /**
+   * Which panels this figure needs. The article measured six graph cards, every one of them
+   * holding a single node and the words "No dependencies between transactions yet", because
+   * every figure rendered the full workbench regardless of what its paragraph was about. A
+   * figure about visibility shows chains; the graph earns its place from the section that
+   * introduces edges onward.
+   */
+  panels?: { versions?: boolean; graph?: boolean };
 }
-
-const LEVELS: { value: IsolationLevel; label: string }[] = [
-  { value: "read_uncommitted", label: "read uncommitted" },
-  { value: "read_committed", label: "read committed" },
-  { value: "repeatable_read", label: "repeatable read" },
-  { value: "serializable", label: "serializable" },
-];
-
-// the hint is the point of the whole project: the label and the behaviour disagree
-const ENGINES: { value: EngineProfile; label: string; hint: string }[] = [
-  { value: "postgres", label: "PostgreSQL", hint: "repeatable read is snapshot isolation" },
-  { value: "mysql", label: "MySQL", hint: "repeatable read loses updates" },
-  { value: "generic", label: "Generic", hint: "the standard, taken literally" },
-];
 
 /**
  * The three panels and the transport, all driven by one step index.
@@ -51,7 +44,10 @@ const Workbench: FC<WorkbenchProps> = ({
   initial,
   onIsolationChange,
   onEngineChange,
+  panels,
 }) => {
+  const showVersions = panels?.versions ?? true;
+  const showGraph = panels?.graph ?? true;
   const [viewer, setViewer] = useState<number | null>(null);
   const rigRef = useRef<HTMLDivElement | null>(null);
 
@@ -79,91 +75,94 @@ const Workbench: FC<WorkbenchProps> = ({
 
   if (error) {
     return (
-      <FigureCard title="Schedule">
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-[var(--color-danger)] text-sm">{error}</p>
-          <Button variant="outline" size="sm" onClick={retry}>
-            Try again
-          </Button>
-        </div>
-      </FigureCard>
+      <div className="rounded border border-[var(--color-line)] bg-[var(--color-card)] p-4">
+        <Pane title="Schedule">
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-[var(--color-danger)] text-sm">{error}</p>
+            <Button variant="outline" size="sm" onClick={retry}>
+              Try again
+            </Button>
+          </div>
+        </Pane>
+      </div>
     );
   }
 
   return (
-    <div ref={rigRef} tabIndex={-1} className="flex min-w-0 flex-col gap-6 outline-none">
-      <FigureCard
-        title="Schedule"
-        aside={
-          <div className="flex flex-wrap items-center gap-3">
-            {onEngineChange && (
-              <FieldSelect
-                caption="engine"
-                label="Engine profile"
-                value={engine}
-                onChange={(next) => onEngineChange(next as EngineProfile)}
-                options={ENGINES}
-              />
-            )}
-            {onIsolationChange &&
-              txns.map((txn) => (
-                <span key={txn} className="flex items-center gap-1.5">
-                  <TxnBadge txn={txn} />
-                  <FieldSelect
-                    label={`Isolation level for transaction ${txn}`}
-                    value={isolation[txn] ?? "repeatable_read"}
-                    onChange={(next) => onIsolationChange(txn, next as IsolationLevel)}
-                    options={LEVELS}
-                  />
-                </span>
-              ))}
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-3">
-          <TimelinePanel steps={steps} index={index} onScrub={setIndex} />
-          <StepTransport
-            index={index}
-            count={steps.length}
-            onChange={setIndex}
-            keyboardTarget={rigRef.current}
-          />
-          {step && (
-            <p className="text-[var(--color-ink-soft)] text-sm" aria-live="polite">
-              <TxnBadge txn={step.op.txn} variant="text" />{" "}
-              {describeOp(step.op.kind, step.op.key, step.op.value, step.op.predicate)}
-              {step.outcome !== "ok" && (
-                <>
-                  {" — "}
-                  <span
-                    className={
-                      step.outcome === "blocked"
-                        ? "text-[var(--color-ink)]"
-                        : "text-[var(--color-danger)]"
-                    }
-                  >
-                    {step.outcome}
-                    {step.error ? `: ${step.error}` : ""}
-                  </span>
-                </>
-              )}
-            </p>
-          )}
-          {loading && steps.length === 0 && (
-            <p className="text-[var(--color-ink-soft)] text-sm">Running the schedule…</p>
-          )}
-        </div>
-      </FigureCard>
+    /*
+      One bordered surface for the whole workbench, divided by rules. It used to be six
+      separate cards, several of them holding bordered strips of bordered controls, and
+      nothing in that said which panel mattered. The schedule sits at the top with the
+      toolbar because it is what the reader is building; the rest is what the engine says
+      back about it.
+    */
+    <div
+      ref={rigRef}
+      tabIndex={-1}
+      className="flex min-w-0 flex-col overflow-hidden rounded border border-[var(--color-line)] bg-[var(--color-card)] outline-none"
+    >
+      <div className="border-[var(--color-line)] border-b p-4">
+        <WorkbenchToolbar
+          engine={engine}
+          isolation={isolation}
+          txns={txns}
+          index={index}
+          count={steps.length}
+          onIndexChange={setIndex}
+          onIsolationChange={onIsolationChange}
+          onEngineChange={onEngineChange}
+          keyboardTarget={rigRef.current}
+        />
+      </div>
 
-      {/* items-start, or the grid stretches both cards to the taller one and the shorter
-          content sits above a band of empty card */}
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <FigureCard
-          title="Version chains"
-          aside={
-            step && Object.keys(step.txns).length > 0 && activeViewer != null ? (
-              <span className="flex items-center gap-1.5">
-                <span className="text-[var(--color-ink-soft)] text-xs">as seen by</span>
+      <div className="p-4">
+        <Pane title="Schedule">
+          <TimelinePanel steps={steps} index={index} onScrub={setIndex} />
+          {/*
+            The step description is one line whose content changes every step. Reserving its
+            height stops every panel below it from shifting as the reader scrubs, which is
+            the layout jumping around as the data changes.
+          */}
+          <p className="mt-3 min-h-5 text-[var(--color-ink-soft)] text-sm" aria-live="polite">
+            {step && (
+              <>
+                <TxnBadge txn={step.op.txn} variant="text" />{" "}
+                {describeOp(step.op.kind, step.op.key, step.op.value, step.op.predicate)}
+                {step.outcome !== "ok" && (
+                  <>
+                    {" — "}
+                    <span
+                      className={
+                        step.outcome === "blocked"
+                          ? "text-[var(--color-ink)]"
+                          : "text-[var(--color-danger)]"
+                      }
+                    >
+                      {step.outcome}
+                      {step.error ? `: ${step.error}` : ""}
+                    </span>
+                  </>
+                )}
+              </>
+            )}
+            {loading && steps.length === 0 && "Running the schedule…"}
+          </p>
+        </Pane>
+      </div>
+
+      <div
+        className={cn(
+          "grid items-start border-[var(--color-line)] border-t",
+          // a rule between the two, not a gap, so they read as one region split in two
+          showVersions && showGraph && "lg:grid-cols-2 lg:divide-x lg:divide-[var(--color-line)]",
+        )}
+      >
+        {showVersions && (
+          <Pane
+            className="p-4"
+            title="Version chains"
+            aside={
+              step && Object.keys(step.txns).length > 0 && activeViewer != null ? (
                 <TxnSelect
                   value={activeViewer}
                   onChange={setViewer}
@@ -172,41 +171,51 @@ const Workbench: FC<WorkbenchProps> = ({
                     .sort((a, b) => a - b)}
                   label="Read the chain as this transaction"
                 />
-              </span>
-            ) : null
-          }
-        >
-          <VersionPanel step={step} viewer={activeViewer} />
-          {step && activeViewer != null && step.txns[activeViewer] && (
-            <p className="tabular mt-3 font-mono text-[var(--color-ink-soft)] text-xs">
-              snapshot xmin {step.txns[activeViewer].snapshot_xmin ?? "–"} · xmax{" "}
-              {step.txns[activeViewer].snapshot_xmax ?? "–"} · xip [
-              {step.txns[activeViewer].snapshot_xip.join(", ")}]
-            </p>
-          )}
-        </FigureCard>
+              ) : null
+            }
+            reserveAside
+          >
+            <VersionPanel
+              step={step}
+              viewer={activeViewer}
+              selected={activeViewer}
+              onSelectTxn={setViewer}
+            />
+            {step && activeViewer != null && step.txns[activeViewer] && (
+              <p className="tabular mt-3 font-mono text-[var(--color-ink-soft)] text-xs">
+                snapshot xmin {step.txns[activeViewer].snapshot_xmin ?? "–"} · xmax{" "}
+                {step.txns[activeViewer].snapshot_xmax ?? "–"} · xip [
+                {step.txns[activeViewer].snapshot_xip.join(", ")}]
+              </p>
+            )}
+          </Pane>
+        )}
 
-        <FigureCard
-          title="Dependency graph"
-          aside={
-            step && step.anomalies.length > 0 ? (
-              <span className="rounded bg-[var(--color-inset)] px-2 py-0.5 font-mono text-[var(--color-ink)] text-xs">
-                {step.anomalies.join(", ")}
-              </span>
-            ) : null
-          }
-        >
-          <GraphPanel step={step} onSelectTxn={setViewer} selected={activeViewer} />
-          {step && step.edges.length === 0 && (
-            <p className="mt-2 text-[var(--color-ink-soft)] text-xs">
-              No dependencies between transactions yet.
+        {showGraph && (
+          <Pane
+            className="p-4"
+            title="Dependency graph"
+            aside={
+              step && step.anomalies.length > 0 ? (
+                <span className="font-mono text-[var(--color-danger)] text-xs">
+                  {step.anomalies.join(", ")}
+                </span>
+              ) : null
+            }
+            reserveAside
+          >
+            <GraphPanel step={step} onSelectTxn={setViewer} selected={activeViewer} />
+            {/* reserved, so the graph does not move up and down as edges appear */}
+            <p className="mt-2 min-h-4 text-[var(--color-ink-soft)] text-xs">
+              {step && step.edges.length === 0 && "No dependencies between transactions yet."}
             </p>
-          )}
-        </FigureCard>
+          </Pane>
+        )}
       </div>
 
       {summary && (
-        <FigureCard
+        <Pane
+          className="border-[var(--color-line)] border-t p-4"
           title="Outcome"
           // this panel is the whole run, not the current step. unlabelled, a reader at
           // step 1 reads "Aborted T2" as something that happened at step 1
@@ -265,7 +274,7 @@ const Workbench: FC<WorkbenchProps> = ({
               ))}
             </ul>
           )}
-        </FigureCard>
+        </Pane>
       )}
     </div>
   );

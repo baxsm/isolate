@@ -2,7 +2,7 @@
 
 import type { FC } from "react";
 import { useState } from "react";
-import FigureCard from "@/components/figure-card";
+import Pane from "@/components/pane";
 import TxnSelect from "@/components/txn-select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +47,7 @@ const SqlInput: FC<SqlInputProps> = ({ onParsed }) => {
   };
 
   return (
-    <FigureCard
+    <Pane
       title="From SQL"
       aside={<TxnSelect value={txn} onChange={setTxn} label="Transaction this SQL belongs to" />}
     >
@@ -61,27 +61,33 @@ const SqlInput: FC<SqlInputProps> = ({ onParsed }) => {
           spellCheck={false}
           className="resize-y font-mono text-xs"
         />
-        {error && (
-          <p className="text-[var(--color-danger)] text-xs" role="alert">
-            {error}
-          </p>
-        )}
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={submit}
-            disabled={pending || sql.trim().length === 0}
-          >
+          {/* "Replace schedule" destroys what the reader built, so it is the loud control
+              here and the only filled button on the page */}
+          <Button size="sm" onClick={submit} disabled={pending || sql.trim().length === 0}>
             {pending ? "Parsing…" : "Replace schedule"}
           </Button>
-          <span className="text-[var(--color-ink-faint)] text-xs">
-            One table, <span className="font-mono">test</span>, with{" "}
-            <span className="font-mono">id</span> and <span className="font-mono">value</span>.
+          {/*
+            One line that carries either the error or the hint, so a failed parse does not
+            push the button down the page. Both are the same size and sit in the same place;
+            only the ink says which one this is.
+          */}
+          <span
+            className={
+              error ? "text-[var(--color-danger)] text-xs" : "text-[var(--color-ink-faint)] text-xs"
+            }
+            role={error ? "alert" : undefined}
+          >
+            {error ?? (
+              <>
+                One table, <span className="font-mono">test</span>, with{" "}
+                <span className="font-mono">id</span> and <span className="font-mono">value</span>.
+              </>
+            )}
           </span>
         </div>
       </div>
-    </FigureCard>
+    </Pane>
   );
 };
 

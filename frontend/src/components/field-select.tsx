@@ -1,6 +1,7 @@
 "use client";
 
 import type { FC } from "react";
+import Field from "@/components/field";
 import {
   Select,
   SelectContent,
@@ -20,17 +21,21 @@ interface FieldSelectProps {
   value: string;
   onChange: (value: string) => void;
   options: Option[];
+  /** The accessible name. Also the visible label when `caption` is set. */
   label: string;
-  /** Rendered before the trigger, in the ink-soft ramp. */
+  /** Shown above the trigger by `Field`. Omit for a control labelled by its context. */
   caption?: string;
+  /** A transaction hue when this field belongs to one. Drawn as a rule, never a chip. */
+  accent?: string;
   className?: string;
 }
 
 /**
  * A labelled dropdown for a schedule setting: isolation level, engine, operation kind.
  *
- * The caption sits outside the trigger rather than as a placeholder, because these are
- * always set and a placeholder that never shows is a control that never says what it is.
+ * A dropdown means "pick one of these states". An action that does something is a Button,
+ * and the two never share a shape. The caption sits above the trigger rather than beside it
+ * so a row of fields aligns on one baseline whatever their labels are.
  */
 const FieldSelect: FC<FieldSelectProps> = ({
   value,
@@ -38,11 +43,11 @@ const FieldSelect: FC<FieldSelectProps> = ({
   options,
   label,
   caption,
+  accent,
   className,
 }) => {
-  return (
-    <span className="flex items-center gap-1.5">
-      {caption && <span className="text-[var(--color-ink-soft)] text-xs">{caption}</span>}
+  const select = (
+    <>
       {/* base ui can emit null when a selection is cleared, which these never are */}
       <Select value={value} onValueChange={(next) => next != null && onChange(next)}>
         <SelectTrigger size="sm" aria-label={label} className={className}>
@@ -52,7 +57,14 @@ const FieldSelect: FC<FieldSelectProps> = ({
             {(current) => options.find((o) => o.value === current)?.label ?? String(current)}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        {/*
+          shadcn pins the popup to `w-(--anchor-width)`, the trigger's own width, and hides
+          the overflow. The engine trigger is 114px while its longest hint needs 194px, so
+          "repeatable read is snapshot isolation" was sliced to "repeatable read is snapsh".
+          The hint is the whole point of the menu, so the popup sizes to its content and is
+          only capped by the viewport.
+        */}
+        <SelectContent className="!w-auto min-w-(--anchor-width) max-w-[min(20rem,calc(100vw-2rem))]">
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               <span className="flex flex-col">
@@ -65,7 +77,14 @@ const FieldSelect: FC<FieldSelectProps> = ({
           ))}
         </SelectContent>
       </Select>
-    </span>
+    </>
+  );
+
+  if (!caption) return select;
+  return (
+    <Field label={caption} accent={accent}>
+      {select}
+    </Field>
   );
 };
 

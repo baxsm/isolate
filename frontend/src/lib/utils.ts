@@ -39,6 +39,11 @@ const SHORT: Record<string, string> = {
   abort: "A",
 };
 
+/** The single letter for an operation kind. `SHORT` is the one table; nothing re-types it. */
+export function opLetter(kind: string): string {
+  return SHORT[kind] ?? "?";
+}
+
 /** `R1(x)`, `W2(y)`, `C1`. The notation the literature uses. */
 export function opToken(kind: string, txn: number, key: string | null): string {
   const letter = SHORT[kind] ?? "?";

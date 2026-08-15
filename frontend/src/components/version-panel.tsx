@@ -9,13 +9,17 @@ import {
 import type { FC } from "react";
 import { useMemo } from "react";
 import TxnBadge from "@/components/txn-badge";
+import { ROW_STATES, rowSelectStyle } from "@/lib/state-tokens";
 import type { Step, Version } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, txnColor } from "@/lib/utils";
 
 interface VersionPanelProps {
   step: Step | null;
   /** Whose eyes to read the chain through. Drives the hatching. */
   viewer: number | null;
+  /** Selecting a transaction anywhere rings its rows here, in its own hue. */
+  selected?: number | null;
+  onSelectTxn?: (txn: number) => void;
 }
 
 interface VersionRow {
@@ -86,7 +90,7 @@ const columns = helper.columns([
   }),
 ]);
 
-const VersionPanel: FC<VersionPanelProps> = ({ step, viewer }) => {
+const VersionPanel: FC<VersionPanelProps> = ({ step, viewer, selected, onSelectTxn }) => {
   const data = useMemo<VersionRow[]>(() => {
     if (!step) return [];
     const out: VersionRow[] = [];
@@ -137,25 +141,48 @@ const VersionPanel: FC<VersionPanelProps> = ({ step, viewer }) => {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr
-              key={row.id}
-              data-testid="version-row"
-              data-visible={row.original.visible}
-              data-dead={row.original.dead}
-              className={cn(
-                "border-[var(--color-line)] border-b last:border-0",
-                !row.original.visible && !row.original.unobserved && "not-visible-row",
-                row.original.dead && "line-through decoration-[var(--color-ink-faint)]",
-              )}
-            >
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="px-2 py-1.5">
-                  <table.FlexRender cell={cell} />
-                </td>
-              ))}
-            </tr>
-          ))}
+          {table.getRowModel().rows.map((row) => {
+            // the transaction that wrote this version. selecting T2 anywhere rings its rows
+            // here in its own hue, which is what makes three panels read as one object
+            const owner = row.original.version.xmin;
+            const isSelected = selected != null && owner === selected && owner !== 0;
+            return (
+              <tr
+                key={row.id}
+                data-testid="version-row"
+                data-visible={row.original.visible}
+                data-dead={row.original.dead}
+                data-selected={isSelected}
+                onClick={owner !== 0 ? () => onSelectTxn?.(owner) : undefined}
+                onKeyDown={
+                  owner !== 0
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onSelectTxn?.(owner);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={owner !== 0 && onSelectTxn ? 0 : undefined}
+                style={isSelected ? rowSelectStyle(txnColor(owner)) : undefined}
+                className={cn(
+                  "border-[var(--color-line)] border-b last:border-0",
+                  // one language with the graph node: hover lifts and shadows, press
+                  // collapses onto a darker ground, focus rings outside the box
+                  owner !== 0 && onSelectTxn && ROW_STATES,
+                  !row.original.visible && !row.original.unobserved && "not-visible-row",
+                  row.original.dead && "line-through decoration-[var(--color-ink-faint)]",
+                )}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-2 py-1.5">
+                    <table.FlexRender cell={cell} />
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
