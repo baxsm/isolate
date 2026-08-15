@@ -112,13 +112,8 @@
 }
 
 /*
-  Dark is a secondary theme. Fills hold; the ground, the text ramp and the halo flip.
-  A dark halo is invisible on a dark ground, which is why that one token inverts and the
-  transaction tokens do not.
-*/
-/*
-  The dark palette. Fills hold; the ground, the text ramp, the halo and the focus ring flip,
-  because a dark halo on a dark ground is invisible.
+  Dark is the secondary theme. Fills hold; the ground, the text ramp, the halo and the focus
+  ring flip, because a dark halo on a dark ground is invisible.
 
   The values live once, in `--dark-*`. The two selectors below only assign them across, so
   the OS preference and the explicit attribute cannot drift apart: `@media` cannot be merged
