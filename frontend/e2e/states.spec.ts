@@ -489,3 +489,52 @@ test.describe("clicking never leaves the browser's own outline", () => {
     });
   }
 });
+
+test.describe("the share confirmation is about one click, not a mode", () => {
+  test.use({ permissions: ["clipboard-read", "clipboard-write"] });
+
+  test("it clears itself, and it clears when the link it confirms changes", async ({ page }) => {
+    await page.goto("/compose");
+    await settle(page);
+
+    const share = page.getByRole("button", { name: /share this schedule/i });
+    await share.click();
+
+    const copied = page.getByRole("button", { name: /link copied/i });
+    await expect(copied).toBeVisible();
+
+    // it goes back on its own rather than sitting there for the rest of the session
+    await expect(share).toBeVisible({ timeout: 5000 });
+
+    // and changing what the url encodes drops it immediately, because the clipboard no
+    // longer holds the schedule on screen
+    await share.click();
+    await expect(copied).toBeVisible();
+    await choose(page, /isolation level for transaction 1/i, "serializable");
+    await expect(share).toBeVisible({ timeout: 1000 });
+  });
+});
+
+test.describe("reordering past a begin", () => {
+  test("an operation above its own begin reports itself, not a dead engine", async ({ page }) => {
+    await page.goto("/compose");
+    await settle(page);
+
+    // push B2 below the T2 reads, which is one drag away in the editor
+    const later = page.getByRole("button", { name: "Move B2 later" });
+    for (let i = 0; i < 3; i++) {
+      await later.click();
+      await page.waitForTimeout(150);
+    }
+    await settle(page);
+
+    // the engine is up, so claiming it is unreachable would be a lie about a real 500
+    await expect(page.getByText(/could not reach the engine/i)).toHaveCount(0);
+    await expect(page.getByTestId("version-table")).toBeVisible();
+
+    // the step line carries the error, so it only reads once the reader is on that step
+    await page.getByTestId("mark-3").click();
+    await page.waitForTimeout(300);
+    await expect(page.getByText(/has not begun/i).first()).toBeVisible();
+  });
+});
