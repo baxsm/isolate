@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/*
+  Transaction colours are measured, not chosen. An iris/jade/ruby set collapses to 19.5
+  CIE76 separation under protanopia; this set holds 64.2 protan and 70.6 deutan. The three
+  step-9 fills are identical in Radix light and dark, so a fill never moves across themes.
+  Step 11 is used for text and does differ by theme, because it has to.
+*/
+/*
+  `static` matters. A plain @theme only emits the tokens Tailwind sees used in a utility
+  class, and these are read through inline var() in SVG fills, so tailwind cannot see them.
+  Without it --color-t2 and --color-t3 resolve to empty and T2 renders with no fill at all.
+*/
+@theme static {
+  --color-t1: #5b5bd6;
+  --color-t2: #29a383;
+  --color-t3: #ffc53d;
+
+  --color-t1-text: #5753c6;
+  --color-t2-text: #208368;
+  --color-t3-text: #ab6400;
+
+  --color-ground: #fcfcfd;
+  --color-card: #ffffff;
+  --color-inset: #f4f4f6;
+  --color-line: #d9d9e0;
+  --color-line-strong: #b9bbc6;
+
+  --color-ink: #1c2024;
+  --color-ink-soft: #60646c;
+  --color-ink-faint: #80838d;
+
+  --color-halo: #64172b;
+  --color-danger: #ce2c31;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+}
+
+:root {
+  --ring: color-mix(in oklab, var(--color-t1) 55%, transparent);
+}
+
+/*
+  Dark is a secondary theme. Fills hold; the ground, the text ramp and the halo flip.
+  A dark halo is invisible on a dark ground, which is why that one token inverts and the
+  transaction tokens do not.
+*/
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground: #111113;
+    --color-card: #18191b;
+    --color-inset: #212225;
+    --color-line: #2e3035;
+    --color-line-strong: #43484e;
+
+    --color-ink: #eeeef0;
+    --color-ink-soft: #b0b4ba;
+    --color-ink-faint: #80838d;
+
+    --color-t1-text: #b1a9ff;
+    --color-t2-text: #1fd8a4;
+    --color-t3-text: #ffca16;
+
+    --color-halo: #fed2e1;
+    --color-danger: #ff9592;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-ground: #111113;
+  --color-card: #18191b;
+  --color-inset: #212225;
+  --color-line: #2e3035;
+  --color-line-strong: #43484e;
+
+  --color-ink: #eeeef0;
+  --color-ink-soft: #b0b4ba;
+  --color-ink-faint: #80838d;
+
+  --color-t1-text: #b1a9ff;
+  --color-t2-text: #1fd8a4;
+  --color-t3-text: #ffca16;
+
+  --color-halo: #fed2e1;
+  --color-danger: #ff9592;
+}
+
+html {
+  background: var(--color-ground);
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* xids and step counts change constantly. proportional digits make them jitter. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/*
+  Reduced motion reduces rather than disables. The step still changes, it just arrives
+  without the transition.
+*/
+@media (prefers-reduced-motion: reduce) {
+  /* biome-ignore-start lint/complexity/noImportantStyles: must beat component-level durations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  /* biome-ignore-end lint/complexity/noImportantStyles: must beat component-level durations */
+}
+
+/* a version the current transaction cannot see. hatched, so it survives greyscale */
+.not-visible-row {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    var(--color-inset) 5px,
+    var(--color-inset) 7px
+  );
+}
+
+@keyframes cycle-dash {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.cycle-edge {
+  animation: cycle-dash 700ms linear infinite;
+}
