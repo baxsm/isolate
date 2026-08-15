@@ -18,7 +18,8 @@ const links = [
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // light is the design target, so it is set rather than left to the OS preference
+    <html lang="en" data-theme="light">
       <body>
         <a
           href="#main"
