@@ -1,7 +1,7 @@
 "use client";
 
 import type { FC } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Step } from "@/lib/types";
 import { opToken, txnColor, txnInkColor } from "@/lib/utils";
 
@@ -28,6 +28,11 @@ const MARK = 26;
  * of `svg`, which is why useSemanticElements is turned off for this file in biome.json.
  */
 const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
+  // hover and focus are held here rather than in css. a `g:hover` rule does not apply to
+  // an svg group in this app: the group receives mousemove and never mouseenter, so the
+  // rule matches while the computed stroke stays at rest
+  const [active, setActive] = useState<number | null>(null);
+
   const txns = useMemo(() => {
     const seen = new Set<number>();
     for (const step of steps) seen.add(step.op.txn);
@@ -111,6 +116,10 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                       data-state={current ? "current" : past ? "past" : "future"}
                       className="cursor-pointer"
                       onClick={() => onScrub(step.index)}
+                      onPointerEnter={() => setActive(step.index)}
+                      onPointerLeave={() => setActive((now) => (now === step.index ? null : now))}
+                      onFocus={() => setActive(step.index)}
+                      onBlur={() => setActive((now) => (now === step.index ? null : now))}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
@@ -123,7 +132,24 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                         state is carried by form, not by opacity. a stroke faded to 0.5
                         against the dark ground measures about 1.9:1 and reads as missing.
                         past is filled, future is outlined, current gains a ring.
+
+                        hover and keyboard focus share one halo in the transaction's own
+                        hue. the browser outline is a hard box on the bounding box, which
+                        lands outside this rounded mark and fights the current ring.
                       */}
+                      {active === step.index && (
+                        <rect
+                          x={x - 4}
+                          y={y - 4}
+                          width={MARK + 2}
+                          height={LANE_HEIGHT + 8}
+                          rx="6"
+                          fill="none"
+                          stroke={txnColor(txn)}
+                          strokeWidth="6"
+                          strokeOpacity="0.25"
+                        />
+                      )}
                       {current && (
                         <rect
                           x={x - 3}

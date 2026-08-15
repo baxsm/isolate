@@ -125,6 +125,16 @@ body {
 }
 
 /*
+  An SVG mark gets focus in its own language instead of the browser box. The generic
+  outline is a hard rectangle on the bounding box, which lands outside a rounded mark that
+  already carries a ring for "current", so two competing rectangles sit on one 26px mark.
+  The mark's own stroke thickens instead, driven from React the same way hover is.
+*/
+svg [role="button"]:focus-visible {
+  outline: none;
+}
+
+/*
   Reduced motion reduces rather than disables. The step still changes, it just arrives
   without the transition.
 
