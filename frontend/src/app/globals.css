@@ -28,7 +28,9 @@
 
   --color-ink: #1c2024;
   --color-ink-soft: #60646c;
-  --color-ink-faint: #80838d;
+  /* 5.04:1 on white, 4.91 on the ground. the radix step 9 grey this replaced measures
+     3.78 and fails AA as body text, which is what it is used as here */
+  --color-ink-faint: #6b6f78;
 
   --color-halo: #64172b;
   --color-danger: #ce2c31;
@@ -57,7 +59,7 @@
 
     --color-ink: #eeeef0;
     --color-ink-soft: #b0b4ba;
-    --color-ink-faint: #80838d;
+    --color-ink-faint: #8b8f98;
 
     --color-t1-text: #b1a9ff;
     --color-t2-text: #1fd8a4;
@@ -77,7 +79,7 @@
 
   --color-ink: #eeeef0;
   --color-ink-soft: #b0b4ba;
-  --color-ink-faint: #80838d;
+  --color-ink-faint: #8b8f98;
 
   --color-t1-text: #b1a9ff;
   --color-t2-text: #1fd8a4;
@@ -101,6 +103,18 @@ body {
 /* xids and step counts change constantly. proportional digits make them jitter. */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+  Prose sits at 68ch and figures break wider, because ui.md makes the two columns
+  different widths on purpose. Below the breakpoint there is no room to widen, so the
+  figure just fills the measure.
+*/
+@media (min-width: 1024px) {
+  .figure-wide {
+    width: min(60rem, calc(100vw - 6rem));
+    margin-left: calc((68ch - min(60rem, 100vw - 6rem)) / 2);
+  }
 }
 
 :focus-visible {
@@ -143,4 +157,16 @@ body {
 
 .cycle-edge {
   animation: cycle-dash 700ms linear infinite;
+}
+
+/*
+  Graph node hover and press are driven from React, not from `g:hover`. A CSS hover on an
+  SVG group did not apply here at all: the group receives mousemove and never mouseenter,
+  so the rule matched while the computed stroke stayed at rest. Pointer handlers on the
+  group are the only version that was observed to work.
+*/
+.graph-node {
+  transition:
+    stroke-width 120ms ease-out,
+    stroke-opacity 120ms ease-out;
 }

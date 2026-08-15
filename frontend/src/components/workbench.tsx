@@ -19,7 +19,6 @@ interface WorkbenchProps {
   initial?: Record<string, number>;
   onIsolationChange?: (txn: number, level: IsolationLevel) => void;
   onEngineChange?: (engine: EngineProfile) => void;
-  compact?: boolean;
 }
 
 const LEVELS: { value: IsolationLevel; label: string }[] = [
@@ -52,7 +51,6 @@ const Workbench: FC<WorkbenchProps> = ({
   initial,
   onIsolationChange,
   onEngineChange,
-  compact = false,
 }) => {
   const [viewer, setViewer] = useState<number | null>(null);
   const rigRef = useRef<HTMLDivElement | null>(null);
@@ -179,7 +177,7 @@ const Workbench: FC<WorkbenchProps> = ({
         </div>
       </FigureCard>
 
-      <div className={compact ? "flex flex-col gap-6" : "grid gap-6 lg:grid-cols-2"}>
+      <div className="grid gap-6 lg:grid-cols-2">
         <FigureCard
           title="Version chains"
           aside={

@@ -2,7 +2,7 @@
 
 import dagre from "@dagrejs/dagre";
 import type { FC } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Edge, Step } from "@/lib/types";
 import { txnColor, txnInkColor } from "@/lib/utils";
 
@@ -14,7 +14,10 @@ interface GraphPanelProps {
 
 const NODE_W = 64;
 const NODE_H = 40;
-const HEIGHT = 260;
+// tall enough that a three node cycle is not cramped, short enough that a single node
+// does not sit in a field of empty card
+const MIN_HEIGHT = 150;
+const MAX_HEIGHT = 260;
 
 interface Placed {
   txn: number;
@@ -45,6 +48,9 @@ interface Drawn {
  * of `svg`, which is why useSemanticElements is turned off for this file in biome.json.
  */
 const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [pressed, setPressed] = useState<number | null>(null);
+
   const { nodes, edges, width, height } = useMemo(() => {
     if (!step) return { nodes: [] as Placed[], edges: [] as Drawn[], width: 0, height: 0 };
 
@@ -52,12 +58,17 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
     const cycleNodes = new Set<number>();
     const pivots = new Set<number>();
     for (const cycle of step.cycles) {
+      // scoped to this cycle. a pivot is a node between two rw edges of the same cycle, so
+      // testing against every node seen so far marks pivots that belong to another one
+      const inThisCycle = new Set<number>();
       for (const edge of cycle) {
         cycleKeys.add(`${edge.frm}-${edge.to}-${edge.kind}-${edge.key}`);
         cycleNodes.add(edge.frm);
         cycleNodes.add(edge.to);
+        inThisCycle.add(edge.frm);
+        inThisCycle.add(edge.to);
       }
-      for (const node of cycleNodes) {
+      for (const node of inThisCycle) {
         const incoming = cycle.some((e) => e.to === node && e.kind === "rw");
         const outgoing = cycle.some((e) => e.frm === node && e.kind === "rw");
         if (incoming && outgoing) pivots.add(node);
@@ -137,7 +148,10 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
   const viewBox = `${-pad} ${-pad} ${width + pad * 2} ${height + pad * 2}`;
 
   return (
-    <div style={{ height: HEIGHT }} data-testid="graph">
+    <div
+      style={{ height: Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, height + pad * 2)) }}
+      data-testid="graph"
+    >
       <svg
         viewBox={viewBox}
         width="100%"
@@ -215,6 +229,15 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
             aria-pressed={selected === node.txn}
             className="cursor-pointer"
             onClick={() => onSelectTxn?.(node.txn)}
+            onPointerEnter={() => setHovered(node.txn)}
+            onPointerLeave={() => {
+              setHovered((current) => (current === node.txn ? null : current));
+              setPressed((current) => (current === node.txn ? null : current));
+            }}
+            onPointerDown={() => setPressed(node.txn)}
+            onPointerUp={() => setPressed(null)}
+            onFocus={() => setHovered(node.txn)}
+            onBlur={() => setHovered((current) => (current === node.txn ? null : current))}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
@@ -222,30 +245,51 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
               }
             }}
           >
+            {/* selection is an offset ring in the node's own hue, so it reads as "this
+                one" without competing with the cycle halo sitting right beside it */}
+            {selected === node.txn && (
+              <rect
+                x={node.x - NODE_W / 2 - 5}
+                y={node.y - NODE_H / 2 - 5}
+                width={NODE_W + 10}
+                height={NODE_H + 10}
+                rx="8"
+                fill="none"
+                stroke={txnColor(node.txn)}
+                strokeWidth="2"
+                strokeOpacity="0.45"
+              />
+            )}
             {/* a pivot sits between two anti dependency edges, which is what fekete's
-                theorem says matters, so its ring is heavier than a plain cycle member */}
+                theorem says matters, so it is dashed where a plain cycle member is solid */}
             {(node.inCycle || node.pivot) && (
               <rect
-                x={node.x - NODE_W / 2 - (node.pivot ? 7 : 4)}
-                y={node.y - NODE_H / 2 - (node.pivot ? 7 : 4)}
-                width={NODE_W + (node.pivot ? 14 : 8)}
-                height={NODE_H + (node.pivot ? 14 : 8)}
-                rx="7"
+                x={node.x - NODE_W / 2 - 2.5}
+                y={node.y - NODE_H / 2 - 2.5}
+                width={NODE_W + 5}
+                height={NODE_H + 5}
+                rx="6"
                 fill="none"
                 stroke="var(--color-halo)"
-                strokeWidth={node.pivot ? 4 : 2}
+                strokeWidth={node.pivot ? 2.5 : 1.5}
+                strokeDasharray={node.pivot ? "5 3" : undefined}
               />
             )}
             <rect
+              className="graph-node"
               x={node.x - NODE_W / 2}
               y={node.y - NODE_H / 2}
               width={NODE_W}
               height={NODE_H}
               rx="4"
               fill={txnColor(node.txn)}
-              fillOpacity={node.aborted ? 0.5 : 1}
-              stroke={selected === node.txn ? "var(--color-ink)" : "transparent"}
-              strokeWidth="2"
+              fillOpacity={node.aborted ? 0.45 : 1}
+              stroke={txnColor(node.txn)}
+              // press sits tighter and darker than hover, so the node moves under the
+              // finger rather than only lighting up
+              strokeWidth={pressed === node.txn ? 3 : hovered === node.txn ? 7 : 0}
+              strokeOpacity={pressed === node.txn ? 0.55 : hovered === node.txn ? 0.3 : 0}
+              paintOrder="stroke"
             />
             <text
               x={node.x}
@@ -253,8 +297,10 @@ const GraphPanel: FC<GraphPanelProps> = ({ step, onSelectTxn, selected }) => {
               textAnchor="middle"
               fontSize="14"
               fontFamily="var(--font-mono)"
+              fontWeight={selected === node.txn ? 600 : 400}
               fill={txnInkColor(node.txn)}
               textDecoration={node.aborted ? "line-through" : undefined}
+              pointerEvents="none"
             >
               T{node.txn}
             </text>

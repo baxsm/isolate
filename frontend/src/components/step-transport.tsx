@@ -53,7 +53,7 @@ const StepTransport: FC<StepTransportProps> = ({
   }, [keyboardTarget, index, last, clamp, onChange]);
 
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -100,7 +100,7 @@ const StepTransport: FC<StepTransportProps> = ({
         value={index}
         onChange={(event) => onChange(Number(event.target.value))}
         aria-label="Step"
-        className="h-1 flex-1 cursor-pointer accent-[var(--color-t1)]"
+        className="h-1 min-w-24 flex-1 cursor-pointer accent-[var(--color-t1)]"
       />
 
       <span className="tabular shrink-0 text-[var(--color-ink-soft)] text-xs">
