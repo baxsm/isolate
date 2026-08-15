@@ -40,9 +40,9 @@ interface FieldProps {
  */
 const Field: FC<FieldProps> = ({ label, accent, children, className, disabled }) => {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1", className)} data-disabled={disabled}>
+    <div className={cn("flex min-w-0 flex-col gap-2", className)} data-disabled={disabled}>
       <span
-        className="flex items-center gap-1.5 font-medium text-[10px] uppercase tracking-wider"
+        className="flex items-center gap-2 font-medium text-[10px] uppercase tracking-wider"
         style={{ color: accent ?? "var(--color-ink-faint)" }}
       >
         {label}

@@ -132,7 +132,7 @@ const VersionPanel: FC<VersionPanelProps> = ({ step, viewer, selected, onSelectT
                 <th
                   key={header.id}
                   scope="col"
-                  className="px-2 py-1.5 text-left font-medium font-mono text-[var(--color-ink-soft)] text-xs"
+                  className="px-2 py-2 text-left font-medium font-mono text-[var(--color-ink-soft)] text-xs"
                 >
                   <table.FlexRender header={header} />
                 </th>
@@ -176,7 +176,7 @@ const VersionPanel: FC<VersionPanelProps> = ({ step, viewer, selected, onSelectT
                 )}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-2 py-1.5">
+                  <td key={cell.id} className="px-2 py-2">
                     <table.FlexRender cell={cell} />
                   </td>
                 ))}

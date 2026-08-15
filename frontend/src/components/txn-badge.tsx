@@ -28,7 +28,7 @@ const TxnBadge: FC<TxnBadgeProps> = ({ txn, variant = "fill", label, className }
   return (
     <span
       className={cn(
-        "tabular inline-flex h-5 min-w-5 items-center justify-center rounded px-1.5 font-medium font-mono text-xs",
+        "tabular inline-flex h-5 min-w-5 items-center justify-center rounded px-2 font-medium font-mono text-xs",
         className,
       )}
       style={{ background: txnColor(txn), color: txnInkColor(txn) }}

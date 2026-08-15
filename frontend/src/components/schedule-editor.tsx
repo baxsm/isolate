@@ -69,7 +69,7 @@ const ScheduleEditor: FC<ScheduleEditorProps> = ({ operations, onChange }) => {
           <li
             // biome-ignore lint/suspicious/noArrayIndexKey: position is the identity. the same operation can appear twice in one schedule, so nothing else about it is unique
             key={`${i}-${op.txn}-${op.kind}-${op.key}`}
-            className="flex items-center gap-1.5 border-[var(--color-line)] border-b py-1 last:border-0"
+            className="flex items-center gap-2 border-[var(--color-line)] border-b py-2 last:border-0"
           >
             <span className="tabular w-5 shrink-0 font-mono text-[var(--color-ink-faint)] text-xs">
               {i + 1}
@@ -117,14 +117,9 @@ const ScheduleEditor: FC<ScheduleEditorProps> = ({ operations, onChange }) => {
         sits on the pane directly.
 
         Key and value keep their slots when the kind does not use them, disabled rather than
-        removed. Switching read to commit used to delete two fields and pull `Add` left
-        under the pointer, which is the layout moving because the data changed.
-      */}
-      {/*
-        A fixed grid, not a wrapping row. Measured at the 320px rail: 384px of controls in a
-        286px row, wrapping onto three lines and moving `Add` every time the kind changed.
-        Two rows of fixed tracks fit at every width the rail is ever given, and the controls
-        stay in the same place whatever operation is selected.
+        removed: switching read to commit used to delete two fields and pull `Add` left under
+        the pointer. It is a fixed grid rather than a wrapping row for the same reason -
+        measured at the 320px rail, 384px of controls wrapped onto three lines.
       */}
       <div className="mt-3 grid grid-cols-[auto_1fr] items-end gap-2">
         <TxnSelect

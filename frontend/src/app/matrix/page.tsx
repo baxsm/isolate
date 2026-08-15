@@ -60,7 +60,7 @@ export default async function MatrixPage() {
 
   if (!rows) {
     return (
-      <div className="mx-auto max-w-[1200px] px-6 py-8">
+      <div className="mx-auto max-w-[1200px] px-6 py-6">
         <h1 className="font-medium text-xl tracking-tight">The matrix</h1>
         <p className="mt-6 text-[var(--color-danger)] text-sm">
           Could not reach the engine. Check it is running, then reload.
@@ -72,7 +72,7 @@ export default async function MatrixPage() {
   const disagreements = rows.flatMap((row) => row.cells.filter((cell) => !cell.agrees));
 
   return (
-    <div className="mx-auto max-w-[1200px] px-6 py-8">
+    <div className="mx-auto max-w-[1200px] px-6 py-6">
       <h1 className="font-medium text-xl tracking-tight">The matrix</h1>
       <p className="mt-2 max-w-[80ch] text-[var(--color-ink-soft)] text-sm">
         Computed live by running every scenario at every level, then compared against the table
@@ -94,7 +94,7 @@ export default async function MatrixPage() {
 
       <FigureCard className="mt-6">
         {/* the legend is a line of text, not a tinted box inside the card */}
-        <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs">
+        <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
           <span className="text-[var(--color-ink)]">
             <span className="font-mono">allowed</span> the anomaly happens at this level
           </span>

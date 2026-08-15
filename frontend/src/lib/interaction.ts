@@ -33,7 +33,7 @@ export const PROSE_LINK = [
  * border on a 4px-radius box and pulled it into the header rule with `-mb-px`.
  */
 export const NAV_LINK = [
-  "relative inline-block py-1 text-sm transition-colors",
+  "relative inline-block py-2 text-sm transition-colors",
   "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-[7px] after:h-[2px] after:content-['']",
   FOCUS,
   "rounded-xs",

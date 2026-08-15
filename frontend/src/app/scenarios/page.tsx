@@ -29,7 +29,7 @@ export default async function ScenariosPage() {
 
   if (!scenarios) {
     return (
-      <div className="mx-auto max-w-[1200px] px-6 py-8">
+      <div className="mx-auto max-w-[1200px] px-6 py-6">
         <h1 className="font-medium text-xl tracking-tight">Scenarios</h1>
         <p className="mt-6 text-[var(--color-danger)] text-sm">
           Could not reach the engine. Check it is running, then reload.
@@ -41,7 +41,7 @@ export default async function ScenariosPage() {
   const preventedBy = levelsThatPrevent(matrix);
 
   return (
-    <div className="mx-auto max-w-[1200px] px-6 py-8">
+    <div className="mx-auto max-w-[1200px] px-6 py-6">
       <h1 className="font-medium text-xl tracking-tight">Scenarios</h1>
       <p className="mt-2 max-w-[68ch] text-[var(--color-ink-soft)] text-sm">
         Every schedule from Kleppmann&apos;s Hermitage suite, plus Fekete&apos;s three transaction
@@ -61,7 +61,7 @@ export default async function ScenariosPage() {
                 href={`/compose?scenario=${encodeURIComponent(scenario.id)}`}
                 className={cn("block px-4 py-3", ROW_LINK)}
               >
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
                   <span className="font-mono text-[var(--color-t1-text)] text-sm">
                     {scenario.id}
                   </span>
@@ -74,9 +74,9 @@ export default async function ScenariosPage() {
                   </span>
                 </div>
                 {scenario.note && (
-                  <p className="mt-1 text-[var(--color-ink-soft)] text-xs">{scenario.note}</p>
+                  <p className="mt-2 text-[var(--color-ink-soft)] text-xs">{scenario.note}</p>
                 )}
-                <p className="mt-1 text-[var(--color-ink-soft)] text-xs">
+                <p className="mt-2 text-[var(--color-ink-soft)] text-xs">
                   {describePrevention(preventedBy.get(scenario.id))}
                 </p>
               </Link>

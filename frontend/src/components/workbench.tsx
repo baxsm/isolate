@@ -242,10 +242,10 @@ const Workbench: FC<WorkbenchProps> = ({
             </span>
           }
         >
-          <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 [&_dd]:min-w-0">
+          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 [&_dd]:min-w-0">
             <div className="flex min-w-0 flex-wrap gap-2">
               <dt className="text-[var(--color-ink-soft)]">Committed</dt>
-              <dd className="flex gap-1">
+              <dd className="flex gap-2">
                 {summary.committed.length === 0 ? (
                   <span className="text-[var(--color-ink-faint)]">none</span>
                 ) : (
@@ -255,7 +255,7 @@ const Workbench: FC<WorkbenchProps> = ({
             </div>
             <div className="flex min-w-0 flex-wrap gap-2">
               <dt className="text-[var(--color-ink-soft)]">Aborted</dt>
-              <dd className="flex gap-1">
+              <dd className="flex gap-2">
                 {summary.aborted.length === 0 ? (
                   <span className="text-[var(--color-ink-faint)]">none</span>
                 ) : (
@@ -283,7 +283,7 @@ const Workbench: FC<WorkbenchProps> = ({
             </div>
           </dl>
           {summary.notes.length > 0 && (
-            <ul className="mt-3 flex flex-col gap-1">
+            <ul className="mt-3 flex flex-col gap-2">
               {summary.notes.map((note) => (
                 <li key={note} className="text-[var(--color-ink-soft)] text-xs">
                   {note}

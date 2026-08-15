@@ -111,12 +111,12 @@ const ComposeWorkbench: FC<{ seed: RunResponse | null }> = ({ seed }) => {
   const pristine = operations === DEFAULT_OPERATIONS;
 
   return (
-    <div className="mx-auto max-w-[1200px] px-6 py-8">
+    <div className="mx-auto max-w-[1200px] px-6 py-6">
       <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <div>
           <h1 className="font-medium text-xl tracking-tight">{title}</h1>
           {loadedFrom && (
-            <p className="mt-1 font-mono text-[var(--color-ink-faint)] text-xs">{loadedFrom}</p>
+            <p className="mt-2 font-mono text-[var(--color-ink-faint)] text-xs">{loadedFrom}</p>
           )}
         </div>
         <Button variant="outline" size="sm" onClick={share}>

@@ -47,7 +47,7 @@ const ArticleFigure: FC<ArticleFigureProps> = ({
   }, []);
 
   return (
-    <div className="figure-wide my-8">
+    <div className="figure-wide my-6">
       <Workbench
         operations={operations}
         isolation={isolation}

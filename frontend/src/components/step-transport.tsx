@@ -94,7 +94,7 @@ const StepTransport: FC<StepTransportProps> = ({
         gives it a 24px hit area while the track stays thin, and `max-w` stops a secondary
         control from being the longest horizontal rule in the panel.
       */}
-      <span className="flex min-w-24 max-w-64 flex-1 items-center py-2.5">
+      <span className="flex h-6 min-w-24 max-w-64 flex-1 items-center">
         <input
           type="range"
           min={0}
