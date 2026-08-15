@@ -11,6 +11,19 @@ async function settle(page: Page) {
   await page.waitForTimeout(500);
 }
 
+/**
+ * Picks an option from a Base UI select. It is a button and a portalled listbox, not a
+ * native `select`, so `selectOption` does not apply to it.
+ */
+async function choose(page: Page, label: RegExp | string, option: string) {
+  const triggers = await page.getByLabel(label).all();
+  for (const trigger of triggers) {
+    await trigger.click();
+    await page.getByRole("option", { name: option, exact: true }).click();
+    await page.waitForTimeout(150);
+  }
+}
+
 /** Reads the properties a state change is allowed to move. */
 async function styleOf(target: Locator) {
   return target.evaluate((el) => {
@@ -20,6 +33,7 @@ async function styleOf(target: Locator) {
       color: s.color,
       cursor: s.cursor,
       opacity: s.opacity,
+      pointerEvents: s.pointerEvents,
       borderColor: s.borderTopColor,
     };
   });
@@ -57,7 +71,9 @@ test.describe("transport buttons", () => {
     await expect(prev).toBeDisabled();
     const disabled = await styleOf(prev);
     expect(Number(disabled.opacity)).toBeLessThan(1);
-    expect(disabled.cursor).toBe("not-allowed");
+    // base ui disables with pointer-events: none, so the cursor never resolves to
+    // not-allowed. the dimming plus the disabled attribute is what the reader gets
+    expect(disabled.pointerEvents).toBe("none");
   });
 });
 
@@ -86,7 +102,7 @@ test.describe("graph nodes", () => {
     expect(pressWidth).not.toBe(hoverWidth);
 
     // the effect, not the render: clicking a node re-reads the chain as that transaction
-    await expect(page.getByLabel("Read the chain as this transaction")).toHaveValue("2");
+    await expect(page.getByLabel("Read the chain as this transaction")).toContainText("T2");
     await expect(node).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -99,7 +115,7 @@ test.describe("graph nodes", () => {
     const node = page.getByTestId("node-2");
     await node.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByLabel("Read the chain as this transaction")).toHaveValue("2");
+    await expect(page.getByLabel("Read the chain as this transaction")).toContainText("T2");
   });
 });
 
@@ -138,9 +154,7 @@ test.describe("editor", () => {
     await page.waitForTimeout(400);
     expect(await page.locator(".cycle-edge").count()).toBeGreaterThan(0);
 
-    for (const select of await page.getByLabel(/^Isolation level/).all()) {
-      await select.selectOption("serializable");
-    }
+    await choose(page, /^Isolation level/, "serializable");
     // the run restarts at step 1, so walk back to the end rather than clicking a button
     // that is already disabled there
     await page.waitForTimeout(900);

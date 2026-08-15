@@ -32,8 +32,11 @@ test("workbench with a write skew cycle", async ({ page }) => {
 test("the same schedule at serializable", async ({ page }) => {
   await page.goto("/compose?scenario=G2-item");
   await settle(page);
-  for (const select of await page.getByLabel(/^Isolation level/).all()) {
-    await select.selectOption("serializable");
+  // a base ui select is a button and a portalled listbox, not a native `select`
+  for (const trigger of await page.getByLabel(/^Isolation level/).all()) {
+    await trigger.click();
+    await page.getByRole("option", { name: "serializable", exact: true }).click();
+    await page.waitForTimeout(150);
   }
   await page.waitForTimeout(700);
   await stepToEnd(page);

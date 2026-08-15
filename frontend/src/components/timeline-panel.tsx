@@ -42,6 +42,23 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
   const width = LEFT + Math.max(steps.length, 1) * MARK + 8;
   const height = txns.length * (LANE_HEIGHT + LANE_GAP) + 8;
 
+  const hovered = useMemo(() => {
+    if (active === null) return null;
+    const step = steps.find((s) => s.index === active);
+    if (!step) return null;
+    const lane = txns.indexOf(step.op.txn);
+    if (lane < 0) return null;
+    return {
+      x: LEFT + step.index * MARK,
+      y: lane * (LANE_HEIGHT + LANE_GAP) + 4,
+      label: opToken(step.op.kind, step.op.txn, step.op.key),
+    };
+  }, [active, steps, txns]);
+  // the current ring and the hover label are both drawn above the mark, so the canvas
+  // needs room for them. without this the first lane's ring clips against y=0 and the top
+  // of the mark looks sliced off
+  const PAD = 12;
+
   if (steps.length === 0) {
     return <p className="text-[var(--color-ink-soft)] text-sm">No operations yet.</p>;
   }
@@ -49,9 +66,9 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
   return (
     <div className="overflow-x-auto">
       <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        width={width + PAD * 2}
+        height={height + PAD * 2}
+        viewBox={`${-PAD} ${-PAD} ${width + PAD * 2} ${height + PAD * 2}`}
         role="group"
         aria-label="Schedule timeline"
         data-testid="timeline"
@@ -127,29 +144,15 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                         }
                       }}
                     >
-                      <title>{opToken(step.op.kind, step.op.txn, step.op.key)}</title>
                       {/*
                         state is carried by form, not by opacity. a stroke faded to 0.5
                         against the dark ground measures about 1.9:1 and reads as missing.
                         past is filled, future is outlined, current gains a ring.
 
-                        hover and keyboard focus share one halo in the transaction's own
-                        hue. the browser outline is a hard box on the bounding box, which
-                        lands outside this rounded mark and fights the current ring.
+                        hover lifts the mark by 1px instead of drawing a second box around
+                        it. an outline sized to a 26px mark is nearly the mark, and beside
+                        the current ring the two read as one confused shape.
                       */}
-                      {active === step.index && (
-                        <rect
-                          x={x - 4}
-                          y={y - 4}
-                          width={MARK + 2}
-                          height={LANE_HEIGHT + 8}
-                          rx="6"
-                          fill="none"
-                          stroke={txnColor(txn)}
-                          strokeWidth="6"
-                          strokeOpacity="0.25"
-                        />
-                      )}
                       {current && (
                         <rect
                           x={x - 3}
@@ -164,7 +167,7 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                       )}
                       <rect
                         x={x}
-                        y={y}
+                        y={active === step.index ? y - 1 : y}
                         width={MARK - 6}
                         height={LANE_HEIGHT}
                         rx="3"
@@ -172,6 +175,7 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
                         stroke={txnColor(txn)}
                         strokeWidth={current ? 2 : 1}
                         strokeDasharray={future ? "3 2" : undefined}
+                        className="[transition:y_100ms_ease-out]"
                       />
                       {blocked && (
                         <rect
@@ -211,6 +215,29 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
             </g>
           );
         })}
+
+        {/*
+          The hovered operation, named. Drawn last so it sits over the lanes, and inside
+          the svg so it needs no positioning library. This replaces the native `title`
+          tooltip, which the browser draws in its own style after about a second.
+        */}
+        {hovered && (
+          <text
+            x={Math.min(hovered.x + (MARK - 6) / 2, width - 24)}
+            y={hovered.y - 6}
+            textAnchor="middle"
+            fontSize="10"
+            fontFamily="var(--font-mono)"
+            fill="var(--color-ink)"
+            paintOrder="stroke"
+            stroke="var(--color-card)"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            className="pointer-events-none"
+          >
+            {hovered.label}
+          </text>
+        )}
       </svg>
     </div>
   );
