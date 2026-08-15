@@ -147,7 +147,7 @@ const Workbench: FC<WorkbenchProps> = ({
                 {describeOp(step.op.kind, step.op.key, step.op.value, step.op.predicate)}
                 {step.outcome !== "ok" && (
                   <>
-                    {" — "}
+                    {". "}
                     <span
                       className={
                         step.outcome === "blocked"

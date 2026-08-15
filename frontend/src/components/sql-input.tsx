@@ -41,7 +41,11 @@ const SqlInput: FC<SqlInputProps> = ({ onParsed }) => {
       onParsed(operations);
       setSql("");
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Could not parse that SQL.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not reach the engine. Check it is running, then try again.",
+      );
     } finally {
       setPending(false);
     }

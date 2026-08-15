@@ -70,7 +70,9 @@ export function useRun(request: RunRequest | null, seed?: RunResponse | null): U
         setSteps([]);
         setSummary(null);
         setError(
-          err instanceof ApiError ? err.message : "Something went wrong running this schedule.",
+          err instanceof ApiError
+            ? err.message
+            : "Could not run this schedule. Check the engine is running, then try again.",
         );
       })
       .finally(() => {
