@@ -177,7 +177,9 @@ const Workbench: FC<WorkbenchProps> = ({
         </div>
       </FigureCard>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* items-start, or the grid stretches both cards to the taller one and the shorter
+          content sits above a band of empty card */}
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <FigureCard
           title="Version chains"
           aside={

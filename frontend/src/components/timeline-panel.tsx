@@ -66,6 +66,11 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
 
         {txns.map((txn, lane) => {
           const y = lane * (LANE_HEIGHT + LANE_GAP) + 4;
+          const own = steps.filter((step) => step.op.txn === txn);
+          // the lane ends at this transaction's last operation. running every lane to the
+          // full width draws a line to where the transaction is not, which reads as a
+          // transaction still doing something after it has committed
+          const lastX = own.length > 0 ? LEFT + (own.at(-1)?.index ?? 0) * MARK + (MARK - 6) : LEFT;
           return (
             <g key={txn}>
               <text
@@ -81,7 +86,7 @@ const TimelinePanel: FC<TimelinePanelProps> = ({ steps, index, onScrub }) => {
               <line
                 x1={LEFT - 6}
                 y1={y + LANE_HEIGHT / 2}
-                x2={width - 4}
+                x2={lastX}
                 y2={y + LANE_HEIGHT / 2}
                 stroke="var(--color-line)"
                 strokeWidth="1"

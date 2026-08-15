@@ -125,17 +125,22 @@ body {
 /*
   Reduced motion reduces rather than disables. The step still changes, it just arrives
   without the transition.
+
+  The blanket `*` rule this replaced set animation-duration to 1ms, and the computed
+  animation-name came back `none`: a wildcard reset kills the cycle dash outright, which
+  removes the encoding rather than shortening it. Naming the animated things keeps the
+  dash on screen as a static dash and only takes the movement away.
 */
 @media (prefers-reduced-motion: reduce) {
-  /* biome-ignore-start lint/complexity/noImportantStyles: must beat component-level durations */
-  *,
-  *::before,
-  *::after {
-    animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;
+  /* biome-ignore-start lint/complexity/noImportantStyles: must beat the component-level duration */
+  .cycle-edge {
+    animation-play-state: paused !important;
+  }
+
+  .graph-node {
     transition-duration: 1ms !important;
   }
-  /* biome-ignore-end lint/complexity/noImportantStyles: must beat component-level durations */
+  /* biome-ignore-end lint/complexity/noImportantStyles: must beat the component-level duration */
 }
 
 /* a version the current transaction cannot see. hatched, so it survives greyscale */

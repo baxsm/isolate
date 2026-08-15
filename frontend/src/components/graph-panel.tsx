@@ -16,7 +16,7 @@ const NODE_W = 64;
 const NODE_H = 40;
 // tall enough that a three node cycle is not cramped, short enough that a single node
 // does not sit in a field of empty card
-const MIN_HEIGHT = 150;
+const MIN_HEIGHT = 110;
 const MAX_HEIGHT = 260;
 
 interface Placed {
