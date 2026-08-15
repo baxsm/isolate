@@ -2,11 +2,14 @@
 
 import type { FC } from "react";
 import { useMemo, useRef, useState } from "react";
+import FieldSelect from "@/components/field-select";
 import FigureCard from "@/components/figure-card";
 import GraphPanel from "@/components/graph-panel";
 import StepTransport from "@/components/step-transport";
 import TimelinePanel from "@/components/timeline-panel";
 import TxnBadge from "@/components/txn-badge";
+import TxnSelect from "@/components/txn-select";
+import { Button } from "@/components/ui/button";
 import VersionPanel from "@/components/version-panel";
 import type { EngineProfile, IsolationLevel, Operation, RunRequest } from "@/lib/types";
 import { useRun } from "@/lib/use-run";
@@ -28,15 +31,12 @@ const LEVELS: { value: IsolationLevel; label: string }[] = [
   { value: "serializable", label: "serializable" },
 ];
 
-const ENGINES: { value: EngineProfile; label: string }[] = [
-  { value: "postgres", label: "PostgreSQL" },
-  { value: "mysql", label: "MySQL" },
-  { value: "generic", label: "Generic" },
+// the hint is the point of the whole project: the label and the behaviour disagree
+const ENGINES: { value: EngineProfile; label: string; hint: string }[] = [
+  { value: "postgres", label: "PostgreSQL", hint: "repeatable read is snapshot isolation" },
+  { value: "mysql", label: "MySQL", hint: "repeatable read loses updates" },
+  { value: "generic", label: "Generic", hint: "the standard, taken literally" },
 ];
-
-const select =
-  "cursor-pointer rounded border border-[var(--color-line)] bg-[var(--color-card)] px-2 py-1 " +
-  "text-xs text-[var(--color-ink)] transition-colors hover:bg-[var(--color-inset)]";
 
 /**
  * The three panels and the transport, all driven by one step index.
@@ -82,62 +82,40 @@ const Workbench: FC<WorkbenchProps> = ({
       <FigureCard title="Schedule">
         <div className="flex flex-col items-start gap-3">
           <p className="text-[var(--color-danger)] text-sm">{error}</p>
-          <button
-            type="button"
-            onClick={retry}
-            className="cursor-pointer rounded border border-[var(--color-line)] px-3 py-1.5 text-sm transition-colors hover:bg-[var(--color-inset)] active:bg-[var(--color-line)]"
-          >
+          <Button variant="outline" size="sm" onClick={retry}>
             Try again
-          </button>
+          </Button>
         </div>
       </FigureCard>
     );
   }
 
   return (
-    <div ref={rigRef} tabIndex={-1} className="flex flex-col gap-6 outline-none">
+    <div ref={rigRef} tabIndex={-1} className="flex min-w-0 flex-col gap-6 outline-none">
       <FigureCard
         title="Schedule"
         aside={
           <div className="flex flex-wrap items-center gap-3">
             {onEngineChange && (
-              <label className="flex items-center gap-1.5 text-[var(--color-ink-soft)] text-xs">
-                engine
-                <select
-                  className={select}
-                  value={engine}
-                  onChange={(event) => onEngineChange(event.target.value as EngineProfile)}
-                >
-                  {ENGINES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <FieldSelect
+                caption="engine"
+                label="Engine profile"
+                value={engine}
+                onChange={(next) => onEngineChange(next as EngineProfile)}
+                options={ENGINES}
+              />
             )}
             {onIsolationChange &&
               txns.map((txn) => (
-                <label
-                  key={txn}
-                  className="flex items-center gap-1.5 text-[var(--color-ink-soft)] text-xs"
-                >
+                <span key={txn} className="flex items-center gap-1.5">
                   <TxnBadge txn={txn} />
-                  <select
-                    className={select}
-                    aria-label={`Isolation level for transaction ${txn}`}
-                    value={isolation[txn]}
-                    onChange={(event) =>
-                      onIsolationChange(txn, event.target.value as IsolationLevel)
-                    }
-                  >
-                    {LEVELS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <FieldSelect
+                    label={`Isolation level for transaction ${txn}`}
+                    value={isolation[txn] ?? "repeatable_read"}
+                    onChange={(next) => onIsolationChange(txn, next as IsolationLevel)}
+                    options={LEVELS}
+                  />
+                </span>
               ))}
           </div>
         }
@@ -183,25 +161,18 @@ const Workbench: FC<WorkbenchProps> = ({
         <FigureCard
           title="Version chains"
           aside={
-            step && Object.keys(step.txns).length > 0 ? (
-              <label className="flex items-center gap-1.5 text-[var(--color-ink-soft)] text-xs">
-                as seen by
-                <select
-                  className={select}
-                  aria-label="Read the chain as this transaction"
-                  value={activeViewer ?? ""}
-                  onChange={(event) => setViewer(Number(event.target.value))}
-                >
-                  {Object.keys(step.txns)
+            step && Object.keys(step.txns).length > 0 && activeViewer != null ? (
+              <span className="flex items-center gap-1.5">
+                <span className="text-[var(--color-ink-soft)] text-xs">as seen by</span>
+                <TxnSelect
+                  value={activeViewer}
+                  onChange={setViewer}
+                  options={Object.keys(step.txns)
                     .map(Number)
-                    .sort((a, b) => a - b)
-                    .map((txn) => (
-                      <option key={txn} value={txn}>
-                        T{txn}
-                      </option>
-                    ))}
-                </select>
-              </label>
+                    .sort((a, b) => a - b)}
+                  label="Read the chain as this transaction"
+                />
+              </span>
             ) : null
           }
         >
@@ -245,8 +216,8 @@ const Workbench: FC<WorkbenchProps> = ({
             </span>
           }
         >
-          <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-            <div className="flex gap-2">
+          <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 [&_dd]:min-w-0">
+            <div className="flex min-w-0 flex-wrap gap-2">
               <dt className="text-[var(--color-ink-soft)]">Committed</dt>
               <dd className="flex gap-1">
                 {summary.committed.length === 0 ? (
@@ -256,7 +227,7 @@ const Workbench: FC<WorkbenchProps> = ({
                 )}
               </dd>
             </div>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2">
               <dt className="text-[var(--color-ink-soft)]">Aborted</dt>
               <dd className="flex gap-1">
                 {summary.aborted.length === 0 ? (
@@ -266,7 +237,7 @@ const Workbench: FC<WorkbenchProps> = ({
                 )}
               </dd>
             </div>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2">
               <dt className="text-[var(--color-ink-soft)]">Anomalies</dt>
               <dd className="tabular font-mono">
                 {summary.anomalies.length === 0 ? (
@@ -276,9 +247,9 @@ const Workbench: FC<WorkbenchProps> = ({
                 )}
               </dd>
             </div>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2">
               <dt className="text-[var(--color-ink-soft)]">Final</dt>
-              <dd className="tabular font-mono">
+              <dd className="tabular min-w-0 break-all font-mono">
                 {Object.entries(summary.final)
                   .map(([key, value]) => `${key} => ${value}`)
                   .join(", ") || "empty"}

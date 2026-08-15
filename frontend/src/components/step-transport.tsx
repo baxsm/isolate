@@ -3,6 +3,7 @@
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from "lucide-react";
 import type { FC } from "react";
 import { useCallback, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface StepTransportProps {
@@ -13,13 +14,6 @@ interface StepTransportProps {
   keyboardTarget?: HTMLElement | null;
   className?: string;
 }
-
-const button =
-  "inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded border " +
-  "border-[var(--color-line)] bg-[var(--color-card)] text-[var(--color-ink-soft)] " +
-  "transition-colors hover:bg-[var(--color-inset)] hover:text-[var(--color-ink)] " +
-  "active:bg-[var(--color-line)] disabled:cursor-not-allowed disabled:opacity-40 " +
-  "disabled:hover:bg-[var(--color-card)]";
 
 const StepTransport: FC<StepTransportProps> = ({
   index,
@@ -55,42 +49,42 @@ const StepTransport: FC<StepTransportProps> = ({
   return (
     <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className={button}
+        <Button
+          variant="outline"
+          size="icon-sm"
           onClick={() => onChange(0)}
           disabled={index === 0}
           aria-label="First step"
         >
-          <ChevronFirst size={16} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className={button}
+          <ChevronFirst aria-hidden />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon-sm"
           onClick={() => onChange(clamp(index - 1))}
           disabled={index === 0}
           aria-label="Previous step"
         >
-          <ChevronLeft size={16} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className={button}
+          <ChevronLeft aria-hidden />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon-sm"
           onClick={() => onChange(clamp(index + 1))}
           disabled={index >= last}
           aria-label="Next step"
         >
-          <ChevronRight size={16} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className={button}
+          <ChevronRight aria-hidden />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon-sm"
           onClick={() => onChange(last)}
           disabled={index >= last}
           aria-label="Last step"
         >
-          <ChevronLast size={16} aria-hidden />
-        </button>
+          <ChevronLast aria-hidden />
+        </Button>
       </div>
 
       <input

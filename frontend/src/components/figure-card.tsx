@@ -15,7 +15,10 @@ interface FigureCardProps {
 const FigureCard: FC<FigureCardProps> = ({ title, aside, children, className }) => {
   return (
     <section
-      className={cn("rounded border border-[var(--color-line)] bg-[var(--color-card)]", className)}
+      className={cn(
+        "min-w-0 rounded border border-[var(--color-line)] bg-[var(--color-card)]",
+        className,
+      )}
     >
       {(title || aside) && (
         <header className="flex items-center justify-between gap-3 border-[var(--color-line)] border-b px-4 py-2">

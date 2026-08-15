@@ -3,7 +3,9 @@
 import type { FC } from "react";
 import { useState } from "react";
 import FigureCard from "@/components/figure-card";
-import TxnBadge from "@/components/txn-badge";
+import TxnSelect from "@/components/txn-select";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiError, parseSql } from "@/lib/api";
 import type { Operation } from "@/lib/types";
 
@@ -47,33 +49,17 @@ const SqlInput: FC<SqlInputProps> = ({ onParsed }) => {
   return (
     <FigureCard
       title="From SQL"
-      aside={
-        <label className="flex items-center gap-1.5 text-[var(--color-ink-soft)] text-xs">
-          <TxnBadge txn={txn} />
-          <select
-            aria-label="Transaction this SQL belongs to"
-            value={txn}
-            onChange={(event) => setTxn(Number(event.target.value))}
-            className="cursor-pointer rounded border border-[var(--color-line)] bg-[var(--color-card)] px-2 py-1 text-[var(--color-ink)] text-xs transition-colors hover:bg-[var(--color-inset)]"
-          >
-            {[1, 2, 3].map((n) => (
-              <option key={n} value={n}>
-                T{n}
-              </option>
-            ))}
-          </select>
-        </label>
-      }
+      aside={<TxnSelect value={txn} onChange={setTxn} label="Transaction this SQL belongs to" />}
     >
       <div className="flex flex-col gap-3">
-        <textarea
+        <Textarea
           value={sql}
           onChange={(event) => setSql(event.target.value)}
           placeholder={PLACEHOLDER}
           rows={5}
           aria-label="SQL for this transaction"
           spellCheck={false}
-          className="w-full resize-y rounded border border-[var(--color-line)] bg-[var(--color-card)] p-2 font-mono text-[var(--color-ink)] text-xs placeholder:text-[var(--color-ink-faint)]"
+          className="resize-y font-mono text-xs"
         />
         {error && (
           <p className="text-[var(--color-danger)] text-xs" role="alert">
@@ -81,14 +67,14 @@ const SqlInput: FC<SqlInputProps> = ({ onParsed }) => {
           </p>
         )}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={submit}
             disabled={pending || sql.trim().length === 0}
-            className="cursor-pointer rounded border border-[var(--color-line)] px-3 py-1.5 text-[var(--color-ink)] text-xs transition-colors hover:bg-[var(--color-inset)] active:bg-[var(--color-line)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             {pending ? "Parsing…" : "Replace schedule"}
-          </button>
+          </Button>
           <span className="text-[var(--color-ink-faint)] text-xs">
             One table, <span className="font-mono">test</span>, with{" "}
             <span className="font-mono">id</span> and <span className="font-mono">value</span>.

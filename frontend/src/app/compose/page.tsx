@@ -1,9 +1,11 @@
 "use client";
 
+import { Check, Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FigureCard from "@/components/figure-card";
 import ScheduleEditor from "@/components/schedule-editor";
 import SqlInput from "@/components/sql-input";
+import { Button } from "@/components/ui/button";
 import Workbench from "@/components/workbench";
 import { decodeSchedule, encodeSchedule } from "@/lib/schedule-url";
 import type { EngineProfile, IsolationLevel, Operation } from "@/lib/types";
@@ -123,13 +125,10 @@ export default function ComposePage() {
             <p className="mt-1 font-mono text-[var(--color-ink-faint)] text-xs">{loadedFrom}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={share}
-          className="cursor-pointer rounded border border-[var(--color-line)] px-3 py-1.5 text-[var(--color-ink)] text-xs transition-colors hover:bg-[var(--color-inset)] active:bg-[var(--color-line)]"
-        >
+        <Button variant="outline" size="sm" onClick={share}>
+          {copied ? <Check aria-hidden /> : <Link2 aria-hidden />}
           {copied ? "Link copied" : "Share this schedule"}
-        </button>
+        </Button>
       </div>
 
       {notFound && (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import FigureCard from "@/components/figure-card";
+import { Button } from "@/components/ui/button";
 import { ApiError, getMatrix, getScenarios } from "@/lib/api";
 import type { MatrixRow, Scenario } from "@/lib/types";
 
@@ -58,16 +59,16 @@ export default function ScenariosPage() {
       {error && (
         <div className="mt-6 flex flex-col items-start gap-3">
           <p className="text-[var(--color-danger)] text-sm">{error}</p>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               setError(null);
               setAttempt((n) => n + 1);
             }}
-            className="cursor-pointer rounded border border-[var(--color-line)] px-3 py-1.5 text-sm transition-colors hover:bg-[var(--color-inset)] active:bg-[var(--color-line)]"
           >
             Try again
-          </button>
+          </Button>
         </div>
       )}
 
