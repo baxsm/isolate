@@ -138,7 +138,10 @@
     --color-t1-text: #b1a9ff;
     --color-t2-text: #1fd8a4;
     --color-t3-text: #ffca16;
-    --color-halo: #fed2e1;
+    /* ruby-2 #fed2e1 measured L* 88.4 against the focus token's 94.1, only dE 18.3 apart,
+       so a node in a cycle wore a near-white ring that read as a stuck focus outline. This
+       is L* 58.4, dE 74.5 from focus and still 5.16 on the card */
+    --color-halo: #f04f84;
     --color-danger: #ff9592;
     --color-focus: #eeeef0;
   }
@@ -157,7 +160,8 @@
   --color-t1-text: #b1a9ff;
   --color-t2-text: #1fd8a4;
   --color-t3-text: #ffca16;
-  --color-halo: #fed2e1;
+  /* must match the media-query block above; see the note there for the measurement */
+  --color-halo: #f04f84;
   --color-danger: #ff9592;
   --color-focus: #eeeef0;
 }

@@ -404,3 +404,49 @@ test.describe("a clipped panel says it is clipped", () => {
     expect(wide?.faded).toBe(false);
   });
 });
+
+test.describe("a cycle halo is not a focus ring", () => {
+  /*
+    The halo marks a node as part of a cycle and focus marks where the keyboard is. Both are
+    rings drawn around the same node, so they have to be separable by colour. In dark the
+    halo was ruby-2 `#fed2e1` at L* 88.4 against the focus token's 94.1, only dE 18.3 apart,
+    and the owner read a node in a cycle as having a stuck focus outline.
+  */
+  for (const theme of ["light", "dark"] as const) {
+    test(`halo and focus are far apart in ${theme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto("/compose?scenario=G2-item");
+      await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+      await settle(page);
+
+      const tokens = await page.evaluate(() => {
+        const s = getComputedStyle(document.documentElement);
+        return {
+          halo: s.getPropertyValue("--color-halo").trim(),
+          focus: s.getPropertyValue("--color-focus").trim(),
+        };
+      });
+
+      // parsed in the browser so the comparison uses the same engine that painted them
+      const separation = await page.evaluate(({ halo, focus }) => {
+        const toRgb = (value: string) => {
+          const probe = document.createElement("span");
+          probe.style.color = value;
+          document.body.append(probe);
+          const rgb = getComputedStyle(probe).color;
+          probe.remove();
+          return (rgb.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map(Number);
+        };
+        const [hr, hg, hb] = toRgb(halo);
+        const [fr, fg, fb] = toRgb(focus);
+        // plain euclidean distance in srgb is enough to catch two near-white rings
+        return Math.round(
+          Math.hypot((hr ?? 0) - (fr ?? 0), (hg ?? 0) - (fg ?? 0), (hb ?? 0) - (fb ?? 0)),
+        );
+      }, tokens);
+
+      console.log(`${theme}: halo ${tokens.halo} vs focus ${tokens.focus}, distance ${separation}`);
+      expect(separation).toBeGreaterThan(60);
+    });
+  }
+});
