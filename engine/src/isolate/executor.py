@@ -68,8 +68,8 @@ class Executor:
         self._queued: dict[int, list[Operation]] = {}
         self._shared_locks: dict[str, set[int]] = {}
         self._gap_locks: dict[str, set[int]] = {}
-        # the transaction label from the schedule is used as the xid directly, so a reader
-        # comparing an xid in the UI against a schedule sees the same number in both
+        # the snapshot horizon sits above every transaction label in the schedule, because
+        # `_do_begin` uses the label itself as the xid rather than allocating a new one
         self._next_xid = max([*isolation, 0]) + 1
         self._step = 0
 
@@ -156,10 +156,12 @@ class Executor:
         return self._result()
 
     def _finish_blocked(self) -> None:
-        """Nothing is left holding a lock at the end, so anything still waiting deadlocked.
+        """Anything still blocked when the schedule runs out can never be woken.
 
-        Postgres would sit here forever and MySQL reports error 1213. Recording it as an
-        aborted step is the honest end state, rather than dropping the operation.
+        A lock is released on commit or abort, so a transaction that never reached either
+        still holds it and the waiter would sit there forever. Recording that as an aborted
+        step with the profile's deadlock error is the honest end state, rather than dropping
+        the operation.
         """
         for parked in list(self._blocked):
             txn = self.txns.get(parked.op.txn)

@@ -39,10 +39,13 @@ interface Drawn {
 /**
  * Transactions as nodes, dependencies as edges, laid out by dagre.
  *
- * Drawn as plain SVG rather than with React Flow. React Flow 12.10 and 12.11 both render
- * zero edges on React 19.2: its own minimal two-node example produces an empty edge layer,
- * with the nodes and the store correct. Layout is still dagre's, so nothing here turns
- * data into coordinates by hand.
+ * Drawn as plain SVG rather than with React Flow. Measured on 12.11 against this build:
+ * default node types draw edges correctly, and a custom node type draws none, because the
+ * custom node never reports its dimensions. React Flow gates both `visibility` and the edge
+ * layer on a measured node, so the nodes stay hidden and no edge is ever placed. A custom
+ * node is not optional here, since every node carries a transaction hue and a cycle ring.
+ *
+ * Layout is still dagre's, so nothing here turns data into coordinates by hand.
  *
  * The nodes are `g role="button"` and keyboard operable. A real `button` cannot be a child
  * of `svg`, which is why useSemanticElements is turned off for this file in biome.json.

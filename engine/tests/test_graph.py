@@ -45,7 +45,7 @@ class TestEdgeDirection:
         assert find(edges, 2, 1, EdgeKind.WW) is None
 
     def test_rw_points_from_reader_to_writer(self):
-        """T1 reads, T2 overwrites. the writer anti-depends on the reader, so T1 -> T2"""
+        """T1 reads, T2 overwrites. the reader anti-depends on the writer, so T1 -> T2"""
         result = run_schedule(
             [begin(1), begin(2), read(1, "1"), write(2, "1", 99), commit(2), commit(1)], RC
         )

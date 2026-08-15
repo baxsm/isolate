@@ -6,7 +6,11 @@ from isolate.types import Version
 
 
 class VersionStore:
-    """Append only MVCC store. One chain per key, oldest first."""
+    """MVCC store. One chain per key, oldest first.
+
+    A version is never removed from a chain. Its xmax is stamped in place when a writer
+    expires it, which is what lets the UI show a dead row rather than dropping it.
+    """
 
     def __init__(self) -> None:
         self._chains: dict[str, list[Version]] = {}
