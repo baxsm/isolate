@@ -215,3 +215,66 @@ class TestMatrix:
 class TestHealth:
     def test_health_reports_ok(self):
         assert client.get("/api/health").json()["status"] == "ok"
+
+
+class TestOutOfOrderSchedule:
+    """The editor reorders operations, so a read can land above its own begin at any time."""
+
+    def test_an_operation_before_its_begin_is_a_step_error_not_a_crash(self):
+        response = client.post(
+            "/api/run",
+            json={
+                "engine": "postgres",
+                "isolation": {"1": "repeatable_read", "2": "repeatable_read"},
+                "operations": [
+                    {"txn": 1, "kind": "begin"},
+                    {"txn": 2, "kind": "read", "key": "1"},
+                    {"txn": 2, "kind": "begin"},
+                    {"txn": 1, "kind": "commit"},
+                    {"txn": 2, "kind": "commit"},
+                ],
+                "initial": [{"key": "1", "value": 10}],
+            },
+        )
+        assert response.status_code == 200
+        steps = response.json()["steps"]
+        assert steps[1]["outcome"] == "error"
+        assert "has not begun" in steps[1]["error"]
+        # the rest of the schedule still runs, so the reader sees what their edit did
+        assert steps[2]["outcome"] == "ok"
+
+    def test_every_kind_survives_arriving_before_its_begin(self):
+        for kind, extra in [
+            ("read", {"key": "1"}),
+            ("write", {"key": "1", "value": 5}),
+            ("commit", {}),
+            ("abort", {}),
+            ("predicate_read", {"predicate": "value > 1"}),
+        ]:
+            response = client.post(
+                "/api/run",
+                json={
+                    "engine": "postgres",
+                    "isolation": {"1": "repeatable_read"},
+                    "operations": [{"txn": 1, "kind": kind, **extra}],
+                    "initial": [{"key": "1", "value": 10}],
+                },
+            )
+            assert response.status_code == 200, kind
+            assert response.json()["steps"][0]["outcome"] == "error", kind
+
+
+class TestCrashesStayReadable:
+    def test_an_unhandled_error_still_answers_with_a_body(self, monkeypatch):
+        """A bare 500 skips the CORS middleware, so the browser calls it a CORS failure and
+        the app says the engine is unreachable while it is running and answering."""
+        import isolate.api as api
+
+        def boom(*_args, **_kwargs):
+            raise RuntimeError("simulated engine bug")
+
+        monkeypatch.setattr(api.Executor, "run", boom)
+        client_raising = TestClient(app, raise_server_exceptions=False)
+        response = client_raising.post("/api/run", json=G2_ITEM)
+        assert response.status_code == 500
+        assert response.json()["detail"]

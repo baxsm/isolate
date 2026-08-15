@@ -182,6 +182,12 @@ class Executor:
         if txn is not None and txn.state in (TxnState.COMMITTED, TxnState.ABORTED):
             self._emit(op, "error", f"transaction {op.txn} has already ended")
             return
+        # every handler below reads `self.txns[op.txn]`, so an operation before its own begin
+        # used to raise KeyError out of the whole run. reordering is the point of the editor,
+        # and dragging a read above its begin is one drag away at any time
+        if txn is None and op.kind is not OpKind.BEGIN:
+            self._emit(op, "error", f"transaction {op.txn} has not begun")
+            return
 
         match op.kind:
             case OpKind.BEGIN:

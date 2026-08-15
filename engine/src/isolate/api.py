@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from isolate.executor import Executor
@@ -29,6 +31,21 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["content-type"],
 )
+
+logger = logging.getLogger("isolate.api")
+
+
+@app.exception_handler(Exception)
+async def unhandled(request: Request, exc: Exception) -> JSONResponse:
+    """Return a real response for a crash, so the browser can read it.
+
+    Starlette's default turns an unhandled exception into a bare 500 that never reaches the
+    CORS middleware, so it carries no `access-control-allow-origin`. The browser then reports
+    a CORS failure and the app shows "could not reach the engine" for an engine that is
+    running and answering. The bug is still a bug; this only makes it legible.
+    """
+    logger.exception("unhandled error on %s", request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "The engine failed on this schedule."})
 
 
 class Strict(BaseModel):
