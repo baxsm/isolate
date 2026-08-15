@@ -30,16 +30,20 @@ const SiteNav: FC = () => {
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
-    <nav aria-label="Main" className="mx-auto flex max-w-[1200px] items-center gap-6 px-6 py-3">
+    <nav aria-label="Main" className="mx-auto flex max-w-[1200px] items-center gap-4 px-6 py-3">
+      {/*
+        The wordmark is the product's name, not a nav item, so it does not answer the
+        pointer the way the links do. Fading it on hover made it look like a fifth link
+        with a different affordance from the other four.
+      */}
       <Link
         href="/"
-        className={cn(
-          "rounded-xs font-medium font-mono text-[var(--color-ink)] text-sm transition-opacity hover:opacity-70",
-          FOCUS,
-        )}
+        className={cn("rounded-xs font-medium font-mono text-[var(--color-ink)] text-sm", FOCUS)}
       >
         isolate
       </Link>
+      {/* says where the name stops and the routes start */}
+      <span aria-hidden className="h-4 w-px shrink-0 bg-[var(--color-line)]" />
       <ul className="flex items-center gap-4">
         {links.map((link) => {
           const active = isActive(link.href);
