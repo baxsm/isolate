@@ -49,7 +49,7 @@ ten anomalies, run on demand rather than transcribed. A cell that disagrees with
 table is marked in red instead of hidden, and every cell opens the schedule that produced it.
 
 <p align="center">
-  <img src="frontend/public/readme/matrix.png" width="880" alt="The matrix page. A legend explains allowed, safe, and the disagreement marker. Seven rows: PostgreSQL at read committed, repeatable read and serializable, then MySQL/InnoDB at four levels, each row naming the isolation it actually provides underneath the label. All 70 cells reproduce the published result.">
+  <img src="frontend/public/readme/matrix.png" width="880" alt="The matrix page. A legend explains allowed, safe, and the disagreement marker. Ten anomaly columns, each headed by its G-code and its plain name: G0 write cycle through P4 lost update to G2 anti dependency cycle. Seven rows: PostgreSQL at read committed, repeatable read and serializable, then MySQL/InnoDB at four levels, each row naming the isolation it actually provides underneath the label. PostgreSQL repeatable read reads safe under P4 while MySQL repeatable read reads allowed. All 70 cells reproduce the published result.">
 </p>
 
 **The labels disagree with the behaviour, and it shows.** PostgreSQL's repeatable read is snapshot
@@ -63,6 +63,14 @@ protanopia rather than picked by eye.
 
 **Reorder an operation and watch the cycle appear or vanish.** The schedule is editable in place,
 and it round trips through the URL so a composed one can be shared.
+
+**An article that argues with a working engine underneath it.** Six sections, each carrying a live
+figure the reader drives. Nothing is bound to scroll position: every figure owns its own schedule
+and step index, and the control is always a button the reader presses.
+
+<p align="center">
+  <img src="frontend/public/readme/article.png" width="880" alt="The article page. A 32px heading reads Two transactions, one row, over serif body text at 19px. The section below, The simplest interference, names T1 in indigo and T2 in green inline in the prose, with the operation R1(1) set in mono. A figure begins underneath, showing both transactions at read committed with a seven step timeline at step 1 of 7.">
+</p>
 
 ## Tech
 
