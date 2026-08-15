@@ -51,23 +51,8 @@ export const NAV_LINK_IDLE = [
 ].join(" ");
 
 /**
- * A row or cell that can be clicked. Hover lifts, press collapses onto a darker ground.
- * Identical to the graph node, which is the point: two panels showing the same transaction
- * should answer a pointer the same way.
- */
-export const PRESSABLE_ROW = [
-  "cursor-pointer transition-[transform,box-shadow,background-color] duration-100",
-  "hover:-translate-y-px hover:shadow-[0_1px_2px_rgb(0_0_0/0.08)]",
-  "active:translate-y-0 active:bg-[var(--color-line)] active:shadow-none",
-  FOCUS,
-].join(" ");
-
-/**
- * A whole list row that navigates. The ground fills on hover rather than the row lifting,
- * because a row inside a divided list has neighbours a lift would collide with.
- */
-/**
- * A whole list row or table cell that navigates.
+ * A whole list row or table cell that navigates. The ground fills on hover rather than the
+ * row lifting, because a row inside a divided list has neighbours a lift would collide with.
  *
  * The focus ring is inset, driven by the `.focus-inset` rule in `globals.css` rather than a
  * utility. Measured on the matrix: an outward 2px ring on the last column reached 1523px
@@ -79,11 +64,4 @@ export const ROW_LINK = [
   "cursor-pointer transition-colors",
   "hover:bg-[var(--color-inset)] active:bg-[var(--color-line)]",
   "focus-inset",
-].join(" ");
-
-/** A quiet control that lives inside a panel header. */
-export const SUBTLE_CONTROL = [
-  "cursor-pointer rounded-sm transition-colors",
-  "hover:bg-[var(--color-inset)] active:bg-[var(--color-line)]",
-  FOCUS,
 ].join(" ");

@@ -4,10 +4,10 @@ import {
   NAV_LINK,
   NAV_LINK_ACTIVE,
   NAV_LINK_IDLE,
-  PRESSABLE_ROW,
   PROSE_LINK,
   ROW_LINK,
 } from "@/lib/interaction";
+import { ROW_STATES } from "@/lib/state-tokens";
 
 /**
  * These check the vocabulary is consistent and that each kind of control is distinguishable
@@ -17,7 +17,7 @@ import {
  */
 describe("focus", () => {
   it("is the same ring everywhere it is used", () => {
-    for (const vocabulary of [PROSE_LINK, NAV_LINK, PRESSABLE_ROW]) {
+    for (const vocabulary of [PROSE_LINK, NAV_LINK, ROW_STATES]) {
       expect(vocabulary).toContain("focus-visible:outline-2");
       expect(vocabulary).toContain("var(--color-focus)");
     }
@@ -26,7 +26,7 @@ describe("focus", () => {
   it("never rings in a transaction hue, which would vanish into the thing it rings", () => {
     // the ring only. a prose link's *text* is deliberately iris, and asserting against the
     // whole class string failed on that rather than on a focus defect
-    for (const vocabulary of [FOCUS, PROSE_LINK, NAV_LINK, PRESSABLE_ROW]) {
+    for (const vocabulary of [FOCUS, PROSE_LINK, NAV_LINK, ROW_STATES]) {
       const rings = vocabulary.match(/focus-visible:outline-\[[^\]]+\]/g) ?? [];
       for (const ring of rings) expect(ring).not.toMatch(/--color-t[123]/);
     }
@@ -79,13 +79,13 @@ describe("rows", () => {
   });
 
   it("a pressable row lifts, because it is not in a divided list", () => {
-    expect(PRESSABLE_ROW).toContain("hover:-translate-y-px");
-    expect(PRESSABLE_ROW).toContain("active:translate-y-0");
+    expect(ROW_STATES).toContain("hover:-translate-y-px");
+    expect(ROW_STATES).toContain("active:translate-y-0");
   });
 
   it("both answer a press, so neither is a picture of a control", () => {
     expect(ROW_LINK).toContain("active:");
-    expect(PRESSABLE_ROW).toContain("active:");
+    expect(ROW_STATES).toContain("active:");
   });
 
   it("a navigating row rings inside its own box", () => {
