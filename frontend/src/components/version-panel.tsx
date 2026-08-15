@@ -101,14 +101,19 @@ const VersionPanel: FC<VersionPanelProps> = ({ step, viewer, selected, onSelectT
       const chain = step.versions[key] ?? [];
       const seen = watching ? step.visible[viewer]?.[key] : undefined;
       for (const version of chain) {
+        // a version its creator rolled back keeps xmax null, because rollback clears the
+        // expiry marks rather than the rows. reading xmax alone then calls it live, and an
+        // aborted write showed as a live row beside the value that actually survived
+        const creatorAborted = step.txns[version.xmin]?.state === "aborted";
+        const dead = version.xmax !== null || creatorAborted;
         out.push({
           version,
           // the row this transaction actually reads: live, and carrying the value its
           // snapshot resolves to
           visible: watching
             ? seen !== undefined && seen !== null && seen === version.value
-            : version.xmax === null,
-          dead: version.xmax !== null,
+            : !dead,
+          dead,
           unobserved: !watching,
         });
       }

@@ -65,6 +65,36 @@ describe("VersionPanel", () => {
     expect(screen.getByTestId("version-row")).toHaveAttribute("data-dead", "true");
   });
 
+  it("a version whose writer aborted is dead, even though rollback left xmax null", () => {
+    // rollback clears the expiry marks rather than removing rows, so an aborted write keeps
+    // xmax null. reading xmax alone showed it as a live row beside the value that survived
+    const step = makeStep({
+      versions: {
+        "2": [version({ key: "2", value: 20, xmin: 0 }), version({ key: "2", value: 21, xmin: 2 })],
+      },
+      visible: {},
+      txns: {
+        ...makeStep().txns,
+        2: {
+          xid: 2,
+          state: "aborted",
+          isolation: "serializable",
+          began_at_step: 0,
+          ended_at_step: 9,
+          in_conflict: true,
+          out_conflict: true,
+          snapshot_xmin: 1,
+          snapshot_xmax: 3,
+          snapshot_xip: [1, 2],
+        },
+      },
+    });
+    render(<VersionPanel step={step} viewer={null} />);
+    const rows = screen.getAllByTestId("version-row");
+    expect(rows[0]).toHaveAttribute("data-dead", "false");
+    expect(rows[1]).toHaveAttribute("data-dead", "true");
+  });
+
   it("says live rather than visible when nobody is watching", () => {
     // a committed transaction has no live view. reporting "not visible" then describes nobody
     render(<VersionPanel step={makeStep({ visible: {} })} viewer={null} />);
