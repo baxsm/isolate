@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Hermitage-10%20anomalies-5b5bd6" alt="Hermitage, 10 anomalies">
   <img src="https://img.shields.io/badge/oracles-PostgreSQL%2018.4-29a383" alt="Checked against PostgreSQL 18.4">
-  <img src="https://img.shields.io/badge/tests-204%20engine%20%2B%2065%20audit-1c2024" alt="204 engine tests and 65 audit checks">
+  <img src="https://img.shields.io/badge/tests-204%20engine%20%2B%2075%20audit-1c2024" alt="204 engine tests and 75 audit checks">
   <img src="https://img.shields.io/badge/TypeScript-strict-3178c6" alt="TypeScript strict">
 </p>
 
@@ -41,7 +41,7 @@ database inconsistent. At serializable the engine detects the pivot and aborts i
 PostgreSQL actually raises.
 
 <p align="center">
-  <img src="frontend/public/readme/serializable.png" width="880" alt="The same G2-item schedule at serializable. The step line reads: T2 commit, aborted, could not serialize access due to read/write dependencies among transactions. Key 2 now stays live at 20 with no dead row. The graph greys T2 out with its label struck through and the cycle is gone. Outcome reads Committed T1, Aborted T2, Anomalies none, Final 1 => 11, 2 => 20.">
+  <img src="frontend/public/readme/serializable.png" width="880" alt="The same G2-item schedule at serializable. The step line reads: T2 commit, aborted, could not serialize access due to read/write dependencies among transactions. Key 2 now stays live at 20, and T2's write of 21 is struck through as dead because its transaction rolled back. The graph greys T2 out with its label struck through and the cycle is gone. Outcome reads Committed T1, Aborted T2, Anomalies none, Final 1 => 11, 2 => 20.">
 </p>
 
 **Every cell of the published matrix, computed live.** Seven engine and level combinations against
@@ -80,18 +80,20 @@ and step index, and the control is always a button the reader presses.
 | Engine API | FastAPI on uvicorn. Runs a schedule and returns every step |
 | SQL | sqlglot, parsing the supported subset into operations |
 | Frontend | Next.js 16 on React 19, TypeScript strict |
+| Components | Base UI primitives, styled locally |
 | Graph layout | dagre |
 | Version chains | TanStack Table |
 | Icons | lucide-react |
-| Checks | pytest and hypothesis on the engine, Playwright and axe on the UI |
+| Checks | pytest and hypothesis on the engine, Vitest, Playwright and axe on the UI |
 
 ## Notes on the stack
 
-**The timeline and the graph are hand written SVG, and the layout is not.** React Flow 12.10 and
-12.11 both render zero edges on React 19.2: its own two node example from the docs produces correct
-nodes, a correct store, and an empty edge layer. Rather than pin React back, the graph draws its own
-edges. dagre still owns every coordinate, because a layout algorithm is exactly the kind of thing
-that should not be hand rolled.
+**The timeline and the graph are hand written SVG, and the layout is not.** React Flow draws edges
+only between nodes it has measured, and a custom node type never reports its dimensions on React
+19.2, so the nodes stay hidden and the edge layer comes up empty. Every node here carries a
+transaction hue and a cycle ring, so a custom type is not optional. Rather than pin React back, the
+graph draws its own edges. dagre still owns every coordinate, because a layout algorithm is exactly
+the kind of thing that should not be hand rolled.
 
 **Write-write conflicts block rather than error.** A blocked transaction queues and its later
 statements wait, which is what a real engine does and what every Hermitage schedule assumes. Without
@@ -127,6 +129,9 @@ Then the frontend, in a second terminal:
 The frontend reads `NEXT_PUBLIC_ENGINE_URL` and falls back to `http://127.0.0.1:8000`. Set it in
 `frontend/.env.local` if the engine runs anywhere else.
 
+Keep the frontend on port 3000. The engine's CORS allowlist names that origin, so a frontend served
+anywhere else is blocked in the browser while every request still succeeds from the terminal.
+
 ## Layout
 
     engine/     MVCC store, isolation levels, dependency graph, anomaly detection, FastAPI
@@ -139,11 +144,17 @@ Engine, 204 tests including the Hermitage goldens and hypothesis generated sched
     cd engine
     uv run pytest
 
-Frontend. The audit runs every route at 1440 and 375, and fails on nested containers, offscreen
-elements, hover styles on things that cannot be clicked, missing pointer cursors, sideways scroll,
-axe violations, and computed WCAG contrast in both themes:
+Frontend, 51 unit and component tests:
 
     cd frontend
     npm run typecheck
     npm run lint
+    npm run test
+
+Then the browser suite, 96 checks against a running engine. The audit walks every route at 1440 and
+375 and fails on nested containers, offscreen elements, hover styles on things that cannot be
+clicked, missing pointer cursors, sideways scroll, axe violations, and computed WCAG contrast in
+both themes. The rest drive the controls with a real pointer, because a control that renders
+correctly and does nothing looks identical in a screenshot:
+
     npm run test:e2e
